@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <div class="card shadow-sm">
+      <div class="card-body p-4">
+        <h5 class="card-title mb-3">Enviar planilha</h5>
+        <p class="text-muted">Aceita Excel (.xlsx/.xls) ou CSV. Tamanho grande pode demorar um pouco para processar.</p>
+        <form action="{{ url_for('upload') }}" method="post" enctype="multipart/form-data">
+          <div class="mb-3">
+            <input class="form-control" type="file" name="file" accept=".xlsx,.xls,.xlsm,.csv" required>
+          </div>
+          <button class="btn btn-primary">Enviar e explorar</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

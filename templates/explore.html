@@ -1,0 +1,180 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="row g-4">
+  <div class="col-lg-3">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h6 class="fw-bold">Fonte</h6>
+        <form method="post" action="{{ url_for('explore') }}" id="sheetForm">
+          <input type="hidden" name="file_id" value="{{ file_id }}">
+          <div class="mb-3">
+            <label class="form-label">Aba (sheet)</label>
+            <select class="form-select" name="sheet" onchange="document.getElementById('sheetForm').submit()">
+              {% for s in sheets %}
+              <option value="{{ s or '' }}" {% if (s or '') == current_sheet %}selected{% endif %}>{{ s or 'CSV (sem abas)' }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </form>
+
+        <hr>
+        <h6 class="fw-bold">Filtros</h6>
+        <div id="filters"></div>
+        <button class="btn btn-outline-secondary btn-sm mt-2" type="button" onclick="addFilter()">+ Adicionar filtro</button>
+
+        <form class="mt-3" method="post" action="{{ url_for('explore') }}" id="applyForm">
+          <input type="hidden" name="file_id" value="{{ file_id }}">
+          <input type="hidden" name="sheet" value="{{ current_sheet }}">
+          <input type="hidden" name="filters_json" id="filters_json">
+          <button class="btn btn-primary w-100" type="button" onclick="serializeFilters()">Aplicar filtros</button>
+        </form>
+
+        <form class="mt-2" method="post" action="{{ url_for('download') }}" id="downloadForm">
+          <input type="hidden" name="file_id" value="{{ file_id }}">
+          <input type="hidden" name="sheet" value="{{ current_sheet }}">
+          <input type="hidden" name="filters_json" id="filters_json_dl">
+          <div class="input-group">
+            <select class="form-select" name="format">
+              <option value="xlsx" selected>Exportar XLSX</option>
+              <option value="csv">Exportar CSV</option>
+            </select>
+            <button class="btn btn-success" type="button" onclick="serializeFilters(true)">Baixar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-9">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <h5 class="mb-0">Prévia</h5>
+          <span class="badge bg-secondary">{{ total_rows }} linhas (resultado atual)</span>
+        </div>
+        <div class="table-responsive" style="max-height: 70vh; overflow:auto">
+          {{ table_html|safe }}
+        </div>
+      </div>
+    </div>
+
+    <div class="card shadow-sm mt-3">
+      <div class="card-body">
+        <h6 class="fw-bold">Esquema das colunas</h6>
+        <ul class="small text-muted mb-0">
+          {% for col in schema %}
+          <li><code>{{ col.name }}</code> — tipo: {{ col.dtype }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const schema = {{ schema|tojson }};
+
+  function filterRowTemplate(i){
+    const colOptions = schema.map(s => `<option value="${s.name}" data-dtype="${s.dtype}">${s.name}</option>`).join('');
+    return `
+      <div class="border rounded p-2 mb-2" data-row="${i}">
+        <div class="row g-2 align-items-end">
+          <div class="col-12">
+            <label class="form-label small mb-1">Coluna</label>
+            <select class="form-select form-select-sm" name="column" onchange="updateOps(this)">
+              <option value="">Selecione...</option>
+              ${colOptions}
+            </select>
+          </div>
+          <div class="col-6">
+            <label class="form-label small mb-1">Operação</label>
+            <select class="form-select form-select-sm" name="op"></select>
+          </div>
+          <div class="col-6" name="value_wrap">
+            <label class="form-label small mb-1">Valor</label>
+            <input class="form-control form-control-sm" name="value" placeholder="valor">
+          </div>
+          <div class="col-12 d-none" name="value2_wrap">
+            <label class="form-label small mb-1">Valor 2</label>
+            <input class="form-control form-control-sm" name="value2" placeholder="valor 2">
+          </div>
+          <div class="col-12 text-end">
+            <button class="btn btn-link text-danger p-0 small" type="button" onclick="this.closest('[data-row]').remove()">remover</button>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  function addFilter(){
+    const container = document.getElementById('filters');
+    const idx = container.children.length;
+    const div = document.createElement('div');
+    div.innerHTML = filterRowTemplate(idx);
+    container.appendChild(div.firstElementChild);
+  }
+
+  function updateOps(sel){
+    const row = sel.closest('[data-row]');
+    const dtype = sel.selectedOptions[0]?.dataset?.dtype || 'string';
+    const op = row.querySelector('select[name="op"]');
+    const v1 = row.querySelector('[name="value_wrap"]');
+    const v2 = row.querySelector('[name="value2_wrap"]');
+    v1.classList.remove('d-none');
+    v2.classList.add('d-none');
+
+    if(dtype === 'string'){
+      op.innerHTML = `
+        <option value="contains">contém</option>
+        <option value="equals">igual a</option>`;
+      v1.querySelector('input').type = 'text';
+    } else if(dtype === 'number'){
+      op.innerHTML = `
+        <option value="gt">&gt;</option>
+        <option value="gte">&gt;=</option>
+        <option value="lt">&lt;</option>
+        <option value="lte">&lt;=</option>
+        <option value="between">entre</option>`;
+      v1.querySelector('input').type = 'number';
+    } else { // datetime
+      op.innerHTML = `
+        <option value="date_between">entre datas</option>
+        <option value="date_eq">igual à data</option>`;
+      v1.querySelector('input').type = 'date';
+    }
+
+    op.onchange = () => {
+      const val = op.value;
+      if(val === 'between' || val === 'date_between'){
+        v2.classList.remove('d-none');
+        v2.querySelector('input').type = (dtype === 'number') ? 'number' : 'date';
+      } else {
+        v2.classList.add('d-none');
+      }
+    }
+  }
+
+  function serializeFilters(forDownload=false){
+    const rows = [...document.querySelectorAll('#filters [data-row]')];
+    const filters = rows.map(r => ({
+      column: r.querySelector('[name="column"]').value,
+      op: r.querySelector('[name="op"]').value,
+      value: r.querySelector('[name="value"]').value,
+      value2: r.querySelector('[name="value2"]').value,
+    })).filter(f => f.column && f.op);
+
+    const jsonStr = JSON.stringify(filters);
+    document.getElementById('filters_json').value = jsonStr;
+    document.getElementById('filters_json_dl').value = jsonStr;
+    if(!forDownload){
+      document.getElementById('applyForm').submit();
+    } else {
+      document.getElementById('downloadForm').submit();
+    }
+  }
+
+  // Cria um filtro inicial para ajudar o usuário
+  if(document.getElementById('filters').children.length === 0){
+    addFilter();
+  }
+</script>
+{% endblock %}
