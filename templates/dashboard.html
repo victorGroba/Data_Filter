@@ -1,0 +1,426 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h1 class="h3">
+            <i class="bi bi-graph-up"></i> Dashboard Financeiro
+        </h1>
+        <p class="text-muted">Análise consolidada das planilhas processadas</p>
+    </div>
+    <div class="col-auto">
+        <div class="btn-group">
+            <a href="{{ url_for('download', session_id=session_id, format='xlsx') }}" class="btn btn-success">
+                <i class="bi bi-file-earmark-excel"></i> Exportar Excel
+            </a>
+            <a href="{{ url_for('download', session_id=session_id, format='csv') }}" class="btn btn-outline-success">
+                <i class="bi bi-file-earmark-text"></i> Exportar CSV
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Filtros Básicos -->
+<div class="row mb-4">
+    <div class="col-lg-12">
+        <div class="card">
+            <div class="card-body">
+                <h6 class="card-title">Filtros Rápidos</h6>
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <select class="form-select" id="yearFilter">
+                            <option value="">Todos os anos</option>
+                            <!-- Anos serão preenchidos via JavaScript -->
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-select" id="monthFilter">
+                            <option value="">Todos os meses</option>
+                            <option value="1">Janeiro</option>
+                            <option value="2">Fevereiro</option>
+                            <option value="3">Março</option>
+                            <option value="4">Abril</option>
+                            <option value="5">Maio</option>
+                            <option value="6">Junho</option>
+                            <option value="7">Julho</option>
+                            <option value="8">Agosto</option>
+                            <option value="9">Setembro</option>
+                            <option value="10">Outubro</option>
+                            <option value="11">Novembro</option>
+                            <option value="12">Dezembro</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3 d-flex align-items-end">
+                        <button class="btn btn-primary w-100" onclick="applyFilters()">
+                            <i class="bi bi-funnel"></i> Aplicar Filtros
+                        </button>
+                    </div>
+                    <div class="col-md-3 d-flex align-items-end">
+                        <button class="btn btn-secondary w-100" onclick="clearFilters()">
+                            <i class="bi bi-arrow-clockwise"></i> Limpar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Métricas -->
+<div class="row mb-4" id="metricsRow">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="card-title">Total Consolidado</h6>
+                        <h4 class="mb-0" id="totalValue">R$ {{ "%.2f"|format(metrics.total_value) }}</h4>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="bi bi-cash-coin fs-1"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="card-title">Média Mensal</h6>
+                        <h4 class="mb-0" id="avgValue">R$ {{ "%.2f"|format(metrics.average_monthly) }}</h4>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="bi bi-graph-up fs-1"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="card-title">Arquivos Processados</h6>
+                        <h4 class="mb-0" id="fileCount">{{ metrics.file_count }}</h4>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="bi bi-files fs-1"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-dark">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="card-title">Maior Valor</h6>
+                        <h4 class="mb-0" id="maxValue">R$ {{ "%.2f"|format(metrics.max_month.value) }}</h4>
+                        <small id="maxPeriod">{{ metrics.max_month.period }}</small>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="bi bi-arrow-up-circle fs-1"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Gráfico -->
+<div class="row mb-4">
+    <div class="col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="bi bi-bar-chart"></i>
+                    Evolução dos Valores
+                </h6>
+            </div>
+            <div class="card-body">
+                <canvas id="financialChart" height="100"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tabela de Resultados -->
+<div class="row">
+    <div class="col-lg-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">
+                    <i class="bi bi-table"></i>
+                    Resultados Processados
+                </h6>
+                <span class="badge bg-secondary">{{ results|length }} arquivo(s)</span>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead>
+                            <tr>
+                                <th>Arquivo</th>
+                                <th>Aba</th>
+                                <th>Total</th>
+                                <th>Data Emissão</th>
+                                <th>Mês</th>
+                                <th>Ano</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for result in results %}
+                            <tr class="{% if not result.success %}table-danger{% endif %}">
+                                <td>{{ result.filename }}</td>
+                                <td>{{ result.get('sheet_name', '-') }}</td>
+                                <td>
+                                    {% if result.get('total_value') and result.total_value > 0 %}
+                                        <strong>R$ {{ "%.2f"|format(result.total_value) }}</strong>
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ result.get('emission_date', '-') }}</td>
+                                <td>
+                                    {% if result.get('month') %}
+                                        {{ result.month }}
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if result.get('year') %}
+                                        {{ result.year }}
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if result.success %}
+                                        <span class="badge bg-success">
+                                            <i class="bi bi-check-circle"></i> Sucesso
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-danger">
+                                            <i class="bi bi-exclamation-triangle"></i> Erro
+                                        </span>
+                                        {% if result.get('error') %}
+                                            <br><small class="text-danger">{{ result.error }}</small>
+                                        {% endif %}
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    'use strict';
+    
+    var chart = null;
+    var sessionId = '{{ session_id }}';
+    
+    // Função para formatar moeda no padrão brasileiro
+    function formatCurrencyBR(value) {
+        if (!value || value === 0) return 'R$ 0,00';
+        return 'R$ ' + value.toLocaleString('pt-BR', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+    }
+    
+    // Dados iniciais do gráfico (usando texto puro em vez de tojson)
+    var chartDataRaw = '{{ chart_data|tojson|safe }}';
+    var chartData = [];
+    
+    try {
+        chartData = JSON.parse(chartDataRaw);
+    } catch (e) {
+        console.error('Erro ao carregar dados do gráfico:', e);
+        chartData = [];
+    }
+    
+    // Inicializa o gráfico
+    function initChart(data) {
+        var ctx = document.getElementById('financialChart');
+        if (!ctx) return;
+        
+        if (chart) {
+            chart.destroy();
+        }
+        
+        var labels = [];
+        var values = [];
+        
+        for (var i = 0; i < data.length; i++) {
+            labels.push(data[i].Label || '');
+            values.push(data[i].Total || 0);
+        }
+        
+        chart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Valor Total',
+                    data: values,
+                    backgroundColor: 'rgba(13, 110, 253, 0.8)',
+                    borderColor: 'rgba(13, 110, 253, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return formatCurrencyBR(context.parsed.y);
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return formatCurrencyBR(value);
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // Aplica filtros via API
+    window.applyFilters = function() {
+        var year = document.getElementById('yearFilter').value;
+        var month = document.getElementById('monthFilter').value;
+        
+        var params = new URLSearchParams();
+        if (year) params.append('year', year);
+        if (month) params.append('month', month);
+        
+        var metricsRow = document.getElementById('metricsRow');
+        if (metricsRow) {
+            metricsRow.style.opacity = '0.5';
+        }
+        
+        fetch('/api/dashboard_data/' + sessionId + '?' + params.toString())
+            .then(function(response) {
+                return response.json();
+            })
+            .then(function(data) {
+                if (data.error) {
+                    alert('Erro: ' + data.error);
+                    return;
+                }
+                
+                updateMetrics(data.metrics);
+                initChart(data.chart_data);
+                
+                if (metricsRow) {
+                    metricsRow.style.opacity = '1';
+                }
+            })
+            .catch(function(error) {
+                console.error('Erro:', error);
+                alert('Erro ao aplicar filtros');
+                if (metricsRow) {
+                    metricsRow.style.opacity = '1';
+                }
+            });
+    };
+
+    // Limpa filtros
+    window.clearFilters = function() {
+        document.getElementById('yearFilter').value = '';
+        document.getElementById('monthFilter').value = '';
+        initChart(chartData);
+        location.reload();
+    };
+
+    // Atualiza cards de métricas
+    function updateMetrics(metrics) {
+        var totalValueEl = document.getElementById('totalValue');
+        var avgValueEl = document.getElementById('avgValue');
+        var fileCountEl = document.getElementById('fileCount');
+        var maxValueEl = document.getElementById('maxValue');
+        var maxPeriodEl = document.getElementById('maxPeriod');
+        
+        if (totalValueEl) {
+            totalValueEl.textContent = formatCurrencyBR(metrics.total_value || 0);
+        }
+        if (avgValueEl) {
+            avgValueEl.textContent = formatCurrencyBR(metrics.average_monthly || 0);
+        }
+        if (fileCountEl) {
+            fileCountEl.textContent = metrics.file_count || 0;
+        }
+        if (maxValueEl) {
+            var maxValue = 0;
+            if (metrics.max_month && metrics.max_month.value) {
+                maxValue = metrics.max_month.value;
+            }
+            maxValueEl.textContent = formatCurrencyBR(maxValue);
+        }
+        if (maxPeriodEl) {
+            var maxPeriod = 'N/A';
+            if (metrics.max_month && metrics.max_month.period) {
+                maxPeriod = metrics.max_month.period;
+            }
+            maxPeriodEl.textContent = maxPeriod;
+        }
+    }
+
+    // Popula anos únicos no filtro
+    function populateYearFilter() {
+        var yearFilter = document.getElementById('yearFilter');
+        var years = [];
+        
+        for (var i = 0; i < chartData.length; i++) {
+            if (chartData[i].Label) {
+                var parts = chartData[i].Label.split('/');
+                if (parts.length > 1) {
+                    var year = parts[1];
+                    if (years.indexOf(year) === -1) {
+                        years.push(year);
+                    }
+                }
+            }
+        }
+        
+        years.sort();
+        for (var j = 0; j < years.length; j++) {
+            var option = document.createElement('option');
+            option.value = years[j];
+            option.textContent = years[j];
+            yearFilter.appendChild(option);
+        }
+    }
+
+    // Inicializa
+    initChart(chartData);
+    populateYearFilter();
+});
+</script>
+{% endblock %}
