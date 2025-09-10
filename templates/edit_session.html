@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GROBA TECH - Editar Relatório</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+  <style>
+    .navbar-brand {
+      font-weight: 700;
+      color: #007bff !important;
+      display: flex;
+      align-items: center;
+    }
+    
+    .navbar-logo {
+      width: 35px;
+      height: 35px;
+      background: linear-gradient(45deg, #007bff, #0056b3);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 0.5rem;
+    }
+    
+    .navbar-logo::before {
+      content: '';
+      width: 20px;
+      height: 20px;
+      background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="30" cy="30" r="8" fill="white" opacity="0.9"/><circle cx="70" cy="30" r="6" fill="white" opacity="0.7"/><circle cx="50" cy="60" r="5" fill="white" opacity="0.8"/><circle cx="25" cy="75" r="4" fill="white" opacity="0.6"/><circle cx="75" cy="75" r="7" fill="white" opacity="0.9"/><path d="M30 30 L70 30 M50 60 L30 30 M50 60 L70 30 M25 75 L50 60 M75 75 L50 60" stroke="white" stroke-width="2" opacity="0.7" fill="none"/></svg>') center/contain no-repeat;
+    }
+    
+    .edit-card {
+      border: none;
+      border-radius: 15px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+    }
+    
+    .edit-header {
+      background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+      color: white;
+      border-radius: 15px 15px 0 0;
+      padding: 2rem;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .edit-header::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 150px;
+      height: 150px;
+      background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="2"/><circle cx="30" cy="30" r="15" fill="rgba(255,255,255,0.05)"/><circle cx="70" cy="70" r="10" fill="rgba(255,255,255,0.08)"/></svg>') center/contain no-repeat;
+    }
+    
+    .edit-icon {
+      width: 80px;
+      height: 80px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 1rem;
+      position: relative;
+      z-index: 2;
+    }
+    
+    .form-control {
+      border: 2px solid #e9ecef;
+      border-radius: 10px;
+      padding: 15px;
+      font-size: 1rem;
+      transition: all 0.3s ease;
+    }
+    
+    .form-control:focus {
+      border-color: #007bff;
+      box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+      transform: translateY(-2px);
+    }
+    
+    .form-label {
+      font-weight: 600;
+      color: #495057;
+      margin-bottom: 0.8rem;
+    }
+    
+    .btn-primary-custom {
+      background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+      border: none;
+      padding: 15px 30px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-radius: 50px;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(0, 123, 255, 0.3);
+    }
+    
+    .btn-primary-custom:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 25px rgba(0, 123, 255, 0.4);
+      background: linear-gradient(135deg, #0056b3 0%, #004085 100%);
+    }
+    
+    .btn-outline-secondary {
+      border: 2px solid #6c757d;
+      border-radius: 50px;
+      padding: 15px 30px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+    }
+    
+    .btn-outline-secondary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 15px rgba(108, 117, 125, 0.3);
+    }
+    
+    .info-box {
+      background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+      border: none;
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+      border-left: 4px solid #007bff;
+    }
+    
+    .info-box h6 {
+      color: #0056b3;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+    
+    .info-box p {
+      color: #495057;
+      margin: 0;
+      font-size: 0.95rem;
+    }
+    
+    .form-section {
+      padding: 2rem;
+    }
+    
+    .animate-fade-in {
+      animation: fadeIn 0.6s ease-out;
+    }
+    
+    @keyframes fadeIn {
+      from { 
+        opacity: 0; 
+        transform: translateY(20px); 
+      }
+      to { 
+        opacity: 1; 
+        transform: translateY(0); 
+      }
+    }
+  </style>
+</head>
+<body class="bg-light">
+  <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom shadow-sm">
+    <div class="container">
+      <a class="navbar-brand" href="/">
+        <div class="navbar-logo"></div>
+        <span>GROBA TECH</span>
+      </a>
+      <div class="navbar-nav ms-auto">
+        <a class="nav-link" href="/">
+          <i class="bi bi-house-door"></i> Início
+        </a>
+        <a class="nav-link" href="{{ url_for('dashboard', session_id=session_data.id) }}">
+          <i class="bi bi-arrow-left"></i> Voltar ao Dashboard
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <main class="container my-5">
+    <div class="row justify-content-center">
+      <div class="col-lg-8 col-xl-6">
+        <div class="edit-card animate-fade-in">
+          <!-- Cabeçalho -->
+          <div class="edit-header">
+            <div class="edit-icon">
+              <i class="bi bi-pencil-square fs-2"></i>
+            </div>
+            <h2 class="mb-2">Editar Relatório</h2>
+            <p class="mb-0 opacity-75">Atualize as informações do seu relatório financeiro</p>
+          </div>
+
+          <!-- Formulário -->
+          <div class="form-section">
+            <!-- Informações Atuais -->
+            <div class="info-box">
+              <h6><i class="bi bi-info-circle"></i> Informações Atuais</h6>
+              <p><strong>Criado em:</strong> {{ session_data.created_at[:10] | replace('-', '/') }}</p>
+              <p><strong>Última atualização:</strong> {{ session_data.updated_at[:10] | replace('-', '/') }}</p>
+            </div>
+
+            <!-- Formulário de Edição -->
+            <form method="POST" action="{{ url_for('edit_session', session_id=session_data.id) }}">
+              <div class="mb-4">
+                <label for="title" class="form-label">
+                  <i class="bi bi-card-text"></i> Título do Relatório *
+                </label>
+                <input 
+                  type="text" 
+                  class="form-control" 
+                  id="title" 
+                  name="title" 
+                  value="{{ session_data.title }}" 
+                  required
+                  placeholder="Ex: Relatório Financeiro Q1 2024"
+                  maxlength="200"
+                >
+                <div class="form-text">Máximo de 200 caracteres</div>
+              </div>
+
+              <div class="mb-4">
+                <label for="description" class="form-label">
+                  <i class="bi bi-file-text"></i> Descrição
+                </label>
+                <textarea 
+                  class="form-control" 
+                  id="description" 
+                  name="description" 
+                  rows="4"
+                  placeholder="Descrição detalhada do relatório (opcional)"
+                  maxlength="500"
+                >{{ session_data.description or '' }}</textarea>
+                <div class="form-text">Máximo de 500 caracteres</div>
+              </div>
+
+              <!-- Botões de Ação -->
+              <div class="d-grid gap-3">
+                <button type="submit" class="btn btn-primary-custom">
+                  <i class="bi bi-check-circle"></i> Salvar Alterações
+                </button>
+                <a href="{{ url_for('dashboard', session_id=session_data.id) }}" 
+                   class="btn btn-outline-secondary">
+                  <i class="bi bi-x-circle"></i> Cancelar
+                </a>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- Dicas -->
+        <div class="mt-4">
+          <div class="card border-0 shadow-sm">
+            <div class="card-header bg-warning text-dark">
+              <h6 class="mb-0">
+                <i class="bi bi-lightbulb"></i> Dicas para um Bom Título
+              </h6>
+            </div>
+            <div class="card-body">
+              <ul class="list-unstyled mb-0">
+                <li class="mb-2">
+                  <i class="bi bi-check text-success"></i>
+                  Use o período: "Relatório Q1 2024" ou "Janeiro-Março 2024"
+                </li>
+                <li class="mb-2">
+                  <i class="bi bi-check text-success"></i>
+                  Inclua o tipo: "Faturamento", "Vendas", "Custos"
+                </li>
+                <li class="mb-2">
+                  <i class="bi bi-check text-success"></i>
+                  Seja específico: "Análise Mensal - Janeiro 2024"
+                </li>
+                <li class="mb-0">
+                  <i class="bi bi-check text-success"></i>
+                  Evite caracteres especiais que podem causar problemas no export
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Contador de caracteres para título
+      const titleInput = document.getElementById('title');
+      const titleCounter = document.createElement('div');
+      titleCounter.className = 'form-text text-end';
+      titleInput.parentNode.appendChild(titleCounter);
+      
+      function updateTitleCounter() {
+        const remaining = 200 - titleInput.value.length;
+        titleCounter.textContent = `${titleInput.value.length}/200 caracteres`;
+        titleCounter.className = remaining < 20 ? 'form-text text-end text-warning' : 'form-text text-end text-muted';
+      }
+      
+      titleInput.addEventListener('input', updateTitleCounter);
+      updateTitleCounter();
+      
+      // Contador de caracteres para descrição
+      const descInput = document.getElementById('description');
+      const descCounter = document.createElement('div');
+      descCounter.className = 'form-text text-end';
+      descInput.parentNode.appendChild(descCounter);
+      
+      function updateDescCounter() {
+        const remaining = 500 - descInput.value.length;
+        descCounter.textContent = `${descInput.value.length}/500 caracteres`;
+        descCounter.className = remaining < 50 ? 'form-text text-end text-warning' : 'form-text text-end text-muted';
+      }
+      
+      descInput.addEventListener('input', updateDescCounter);
+      updateDescCounter();
+      
+      // Validação do formulário
+      const form = document.querySelector('form');
+      form.addEventListener('submit', function(e) {
+        const title = titleInput.value.trim();
+        
+        if (!title) {
+          e.preventDefault();
+          titleInput.focus();
+          titleInput.classList.add('is-invalid');
+          
+          // Remove a classe após 3 segundos
+          setTimeout(() => {
+            titleInput.classList.remove('is-invalid');
+          }, 3000);
+        }
+      });
+      
+      // Auto-foco no campo título
+      titleInput.focus();
+      titleInput.select();
+    });
+  </script>
+</body>
+</html>

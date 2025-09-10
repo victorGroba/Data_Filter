@@ -3,38 +3,81 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Upload de Planilhas - Sistema Financeiro</title>
+  <title>GROBA TECH - Upload de Planilhas</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
   <style>
     .drag-drop-area {
-      border: 2px dashed #007bff;
-      border-radius: 10px;
-      padding: 40px;
+      border: 3px dashed #007bff;
+      border-radius: 15px;
+      padding: 50px;
       text-align: center;
-      background-color: #f8f9fa;
+      background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
       transition: all 0.3s ease;
       cursor: pointer;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .drag-drop-area::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="dots" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="10" cy="10" r="1" fill="rgba(0,123,255,0.1)"/></pattern></defs><rect width="100" height="100" fill="url(%23dots)"/></svg>');
+      opacity: 0.3;
+    }
+    
+    .drag-drop-area > * {
+      position: relative;
+      z-index: 2;
     }
     
     .drag-drop-area:hover, .drag-drop-area.drag-over {
       border-color: #0056b3;
-      background-color: #e3f2fd;
+      background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
       transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(0, 123, 255, 0.2);
+    }
+    
+    .drag-drop-area.drag-over {
+      border-color: #28a745;
+      background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+      animation: pulse 1s infinite;
+    }
+    
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.7); }
+      70% { box-shadow: 0 0 0 10px rgba(40, 167, 69, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(40, 167, 69, 0); }
     }
     
     .file-item {
       background: white;
       border: 1px solid #dee2e6;
-      border-radius: 8px;
-      padding: 15px;
-      margin-bottom: 10px;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 15px;
       transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .file-item::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 4px;
+      height: 100%;
+      background: linear-gradient(135deg, #007bff, #28a745);
     }
     
     .file-item:hover {
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      transform: translateY(-1px);
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+      transform: translateY(-2px);
     }
     
     .file-size {
@@ -48,11 +91,12 @@
     
     .remove-btn {
       opacity: 0.7;
-      transition: opacity 0.3s ease;
+      transition: all 0.3s ease;
     }
     
     .remove-btn:hover {
       opacity: 1;
+      transform: scale(1.1);
     }
     
     .upload-progress {
@@ -60,30 +104,46 @@
     }
     
     .upload-summary {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
       color: white;
-      border-radius: 10px;
-      padding: 20px;
+      border-radius: 15px;
+      padding: 25px;
       margin-bottom: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .upload-summary::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 100px;
+      height: 100px;
+      background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="2"/><circle cx="30" cy="30" r="15" fill="rgba(255,255,255,0.05)"/><circle cx="70" cy="70" r="10" fill="rgba(255,255,255,0.08)"/></svg>') center/contain no-repeat;
     }
     
     .btn-primary-custom {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
       border: none;
-      padding: 12px 30px;
+      padding: 15px 35px;
       font-weight: 600;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
+      letter-spacing: 1px;
+      border-radius: 50px;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(0, 123, 255, 0.3);
     }
     
     .btn-primary-custom:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+      transform: translateY(-3px);
+      box-shadow: 0 8px 25px rgba(0, 123, 255, 0.4);
+      background: linear-gradient(135deg, #0056b3 0%, #004085 100%);
     }
     
     .file-icon {
-      font-size: 1.5rem;
-      margin-right: 10px;
+      font-size: 2rem;
+      margin-right: 15px;
     }
     
     .excel-icon { color: #1d6f42; }
@@ -94,15 +154,95 @@
       color: white;
       border: 1px solid rgba(255, 255, 255, 0.3);
       backdrop-filter: blur(10px);
+      border-radius: 12px;
+      transition: all 0.3s ease;
+    }
+    
+    .stats-badge:hover {
+      background: rgba(255, 255, 255, 0.3);
+      transform: scale(1.05);
+    }
+    
+    .navbar-brand {
+      font-weight: 700;
+      color: #007bff !important;
+      display: flex;
+      align-items: center;
+    }
+    
+    .navbar-logo {
+      width: 35px;
+      height: 35px;
+      background: linear-gradient(45deg, #007bff, #0056b3);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 0.5rem;
+    }
+    
+    .navbar-logo::before {
+      content: '';
+      width: 20px;
+      height: 20px;
+      background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>') center/contain no-repeat;
+    }
+    
+    .progress-custom {
+      height: 8px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.2);
+      overflow: hidden;
+    }
+    
+    .progress-bar-custom {
+      background: linear-gradient(90deg, #28a745, #20c997);
+      border-radius: 10px;
+      transition: all 0.3s ease;
+    }
+    
+    .loading-spinner {
+      border: 3px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      border-top: 3px solid white;
+      width: 30px;
+      height: 30px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 1rem;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .form-section {
+      background: white;
+      border-radius: 15px;
+      padding: 2rem;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+      margin-bottom: 2rem;
+    }
+    
+    .form-control:focus {
+      border-color: #007bff;
+      box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
     }
   </style>
 </head>
 <body class="bg-light">
   <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom shadow-sm">
     <div class="container">
-      <a class="navbar-brand fw-bold text-primary" href="/">
-        <i class="bi bi-graph-up-arrow"></i>
-        Sistema Financeiro
+      <a class="navbar-brand" href="/">
+        <!-- SUA LOGO AQUI - Substitua 'logo.png' pelo nome do seu arquivo -->
+        <img src="{{ url_for('static', filename='images/logo.png') }}" 
+             alt="GROBA TECH Logo" 
+          
+             style="width: 5cm; height: 5cm; object-fit: contain;">
+        <!-- Fallback caso a logo não carregue -->
+        
+       
+        
       </a>
     </div>
   </nav>
@@ -135,6 +275,25 @@
     <div class="row">
       <!-- Área de Upload -->
       <div class="col-lg-8">
+        <!-- Formulário de Informações da Sessão -->
+        <div class="form-section">
+          <h6 class="mb-3">
+            <i class="bi bi-info-circle"></i> Informações do Relatório
+          </h6>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label for="sessionTitle" class="form-label">Título do Relatório</label>
+              <input type="text" class="form-control" id="sessionTitle" 
+                     placeholder="Ex: Relatório Financeiro Janeiro 2024">
+            </div>
+            <div class="col-md-6 mb-3">
+              <label for="sessionDescription" class="form-label">Descrição (Opcional)</label>
+              <input type="text" class="form-control" id="sessionDescription" 
+                     placeholder="Descrição breve do relatório">
+            </div>
+          </div>
+        </div>
+
         <div class="card shadow-sm">
           <div class="card-body">
             <!-- Área de Drag & Drop -->
@@ -142,7 +301,7 @@
               <i class="bi bi-cloud-upload display-1 text-primary mb-3"></i>
               <h5>Arraste seus arquivos aqui</h5>
               <p class="text-muted mb-3">ou clique para selecionar</p>
-              <button type="button" class="btn btn-outline-primary" onclick="document.getElementById('fileInput').click()">
+              <button type="button" class="btn btn-outline-primary btn-lg" onclick="document.getElementById('fileInput').click()">
                 <i class="bi bi-folder2-open"></i> Selecionar Arquivos
               </button>
               <input type="file" id="fileInput" multiple accept=".xlsx,.xls,.xlsm,.csv" style="display: none;">
@@ -174,17 +333,14 @@
             <!-- Progresso do Upload -->
             <div id="uploadProgress" class="upload-progress mt-4">
               <div class="text-center mb-3">
-                <div class="spinner-border text-primary" role="status">
-                  <span class="visually-hidden">Processando...</span>
-                </div>
+                <div class="loading-spinner"></div>
               </div>
-              <div class="progress mb-3">
-                <div class="progress-bar progress-bar-striped progress-bar-animated" 
+              <div class="progress progress-custom mb-3">
+                <div class="progress-bar progress-bar-custom progress-bar-animated" 
                      role="progressbar" style="width: 0%" id="progressBar">
-                  0%
                 </div>
               </div>
-              <p class="text-center text-muted" id="progressText">Preparando upload...</p>
+              <p class="text-center text-white" id="progressText">Preparando upload...</p>
             </div>
           </div>
         </div>
@@ -199,17 +355,19 @@
           </h6>
           <div class="row text-center">
             <div class="col-6">
-              <div class="stats-badge badge rounded-pill p-2 w-100 mb-2">
-                <span id="fileCount">0</span> arquivo(s)
+              <div class="stats-badge badge rounded-pill p-3 w-100 mb-2">
+                <div class="h5 mb-1" id="fileCount">0</div>
+                <small>arquivo(s)</small>
               </div>
             </div>
             <div class="col-6">
-              <div class="stats-badge badge rounded-pill p-2 w-100 mb-2">
-                <span id="totalSize">0 MB</span>
+              <div class="stats-badge badge rounded-pill p-3 w-100 mb-2">
+                <div class="h5 mb-1" id="totalSize">0 MB</div>
+                <small>tamanho total</small>
               </div>
             </div>
           </div>
-          <div class="row mt-2">
+          <div class="row mt-3">
             <div class="col-6 text-center">
               <small>📊 Excel: <span id="excelCount">0</span></small>
             </div>
@@ -220,7 +378,7 @@
         </div>
 
         <!-- Instruções -->
-        <div class="card">
+        <div class="card mb-3">
           <div class="card-header bg-info text-white">
             <h6 class="mb-0">
               <i class="bi bi-info-circle"></i> Instruções
@@ -253,7 +411,7 @@
         </div>
 
         <!-- Dicas -->
-        <div class="card mt-3">
+        <div class="card">
           <div class="card-header bg-warning text-dark">
             <h6 class="mb-0">
               <i class="bi bi-lightbulb"></i> Dicas
@@ -272,8 +430,10 @@
       </div>
     </div>
 
-    <!-- Form oculto para submissão -->
+    <!-- Form corrigido para submissão -->
     <form id="uploadForm" action="/upload" method="post" enctype="multipart/form-data" style="display: none;">
+      <input type="text" name="session_title" id="hiddenSessionTitle">
+      <input type="text" name="session_description" id="hiddenSessionDescription">
       <div id="hiddenFileInputs"></div>
     </form>
   </main>
@@ -308,7 +468,9 @@
 
     function handleDragLeave(e) {
       e.preventDefault();
-      dragDropArea.classList.remove('drag-over');
+      if (!dragDropArea.contains(e.relatedTarget)) {
+        dragDropArea.classList.remove('drag-over');
+      }
     }
 
     function handleDrop(e) {
@@ -469,56 +631,102 @@
       // Simula progresso
       let progress = 0;
       const progressInterval = setInterval(() => {
-        progress += Math.random() * 15;
-        if (progress > 90) progress = 90;
+        progress += Math.random() * 10 + 5; // Progresso mais rápido
+        if (progress > 85) progress = 85;
         
         const progressBar = document.getElementById('progressBar');
         const progressText = document.getElementById('progressText');
         
         progressBar.style.width = progress + '%';
-        progressBar.textContent = Math.round(progress) + '%';
         
         if (progress < 30) {
           progressText.textContent = 'Validando arquivos...';
         } else if (progress < 60) {
-          progressText.textContent = 'Processando planilhas...';
+          progressText.textContent = 'Preparando upload...';
         } else {
-          progressText.textContent = 'Extraindo dados...';
+          progressText.textContent = 'Enviando dados...';
         }
-      }, 200);
+      }, 150);
 
       // Prepara e submete formulário
       setTimeout(() => {
         clearInterval(progressInterval);
-        submitForm();
-      }, 2000);
+        document.getElementById('progressBar').style.width = '100%';
+        document.getElementById('progressText').textContent = 'Processando...';
+        
+        setTimeout(() => {
+          submitForm();
+        }, 500);
+      }, 1500);
     }
 
-    // Submete formulário
+    // Submete formulário (CORRIGIDO)
     function submitForm() {
-      const form = document.getElementById('uploadForm');
-      const hiddenInputs = document.getElementById('hiddenFileInputs');
-      
-      // Limpa inputs anteriores
-      hiddenInputs.innerHTML = '';
-      
-      // Cria inputs para cada arquivo
-      selectedFiles.forEach((file, index) => {
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.name = 'files[]';
-        input.style.display = 'none';
+      try {
+        console.log('Iniciando submissão do formulário...');
         
-        // Cria novo FileList com apenas este arquivo
-        const dt = new DataTransfer();
-        dt.items.add(file);
-        input.files = dt.files;
+        const form = document.getElementById('uploadForm');
+        const hiddenInputs = document.getElementById('hiddenFileInputs');
         
-        hiddenInputs.appendChild(input);
-      });
-      
-      // Submete formulário
-      form.submit();
+        // Limpa inputs anteriores
+        hiddenInputs.innerHTML = '';
+        
+        // Pega valores dos campos de texto
+        const sessionTitle = document.getElementById('sessionTitle').value.trim();
+        const sessionDescription = document.getElementById('sessionDescription').value.trim();
+        
+        // Define valores nos campos ocultos
+        document.getElementById('hiddenSessionTitle').value = sessionTitle;
+        document.getElementById('hiddenSessionDescription').value = sessionDescription;
+        
+        // Cria um FormData para enviar os arquivos
+        const formData = new FormData();
+        
+        // Adiciona campos de texto
+        formData.append('session_title', sessionTitle);
+        formData.append('session_description', sessionDescription);
+        
+        // Adiciona arquivos
+        selectedFiles.forEach((file, index) => {
+          console.log(`Adicionando arquivo ${index + 1}: ${file.name}`);
+          formData.append('files[]', file);
+        });
+        
+        console.log('FormData preparado, enviando...');
+        
+        // Envia via fetch para melhor controle
+        fetch('/upload', {
+          method: 'POST',
+          body: formData
+        })
+        .then(response => {
+          console.log('Resposta recebida:', response.status);
+          if (response.redirected) {
+            window.location.href = response.url;
+          } else {
+            return response.text();
+          }
+        })
+        .then(html => {
+          if (html) {
+            document.open();
+            document.write(html);
+            document.close();
+          }
+        })
+        .catch(error => {
+          console.error('Erro no upload:', error);
+          showAlert('Erro durante o upload. Tente novamente.', 'error');
+          actionButtons.style.display = 'block';
+          uploadProgress.style.display = 'none';
+        });
+        
+      } catch (error) {
+        console.error('Erro na submissão:', error);
+        showAlert('Erro na preparação do upload.', 'error');
+        actionButtons.style.display = 'block';
+        uploadProgress.style.display = 'none';
+      }
     }
 
     // Utilitários
@@ -549,6 +757,21 @@
         }
       }, 5000);
     }
+
+    // Inicialização
+    document.addEventListener('DOMContentLoaded', function() {
+      console.log('Upload page carregada');
+      
+      // Previne o comportamento padrão de drag/drop na página
+      ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        document.addEventListener(eventName, preventDefaults, false);
+      });
+      
+      function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    });
   </script>
 </body>
 </html>

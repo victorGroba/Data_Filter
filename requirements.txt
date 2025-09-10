@@ -1,5 +1,7 @@
 Flask==3.0.3
-pandas==2.2.2
+pandas>=2.2.3
+# (mantenha as demais linhas iguais)
+
 openpyxl==3.1.5
 python-dateutil==2.9.0.post0
 Werkzeug==3.0.3

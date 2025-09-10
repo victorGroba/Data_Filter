@@ -3,25 +3,51 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Dashboard Financeiro - Sistema de Análise</title>
+  <title>GROBA TECH - Dashboard Financeiro</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
+    .navbar-brand {
+      font-weight: 700;
+      color: #007bff !important;
+      display: flex;
+      align-items: center;
+    }
+    
+    .navbar-logo {
+      width: 35px;
+      height: 35px;
+      background: linear-gradient(45deg, #007bff, #0056b3);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 0.5rem;
+    }
+    
+    .navbar-logo::before {
+      content: '';
+      width: 20px;
+      height: 20px;
+      background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="30" cy="30" r="8" fill="white" opacity="0.9"/><circle cx="70" cy="30" r="6" fill="white" opacity="0.7"/><circle cx="50" cy="60" r="5" fill="white" opacity="0.8"/><circle cx="25" cy="75" r="4" fill="white" opacity="0.6"/><circle cx="75" cy="75" r="7" fill="white" opacity="0.9"/><path d="M30 30 L70 30 M50 60 L30 30 M50 60 L70 30 M25 75 L50 60 M75 75 L50 60" stroke="white" stroke-width="2" opacity="0.7" fill="none"/></svg>') center/contain no-repeat;
+    }
+
     .card-metric { 
-      transition: transform 0.2s; 
+      transition: all 0.3s ease;
       cursor: pointer;
+      border: none;
+      border-radius: 15px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
     }
     .card-metric:hover { 
-      transform: translateY(-2px); 
+      transform: translateY(-5px);
+      box-shadow: 0 8px 25px rgba(0,0,0,0.15);
     }
     .table-responsive {
       max-height: 60vh;
       overflow-y: auto;
-    }
-    .navbar-brand {
-      font-weight: 700;
-      color: #0d6efd !important;
+      border-radius: 10px;
     }
     .quality-indicator {
       display: inline-block;
@@ -39,6 +65,7 @@
       border-left: 4px solid #17a2b8;
       background-color: #d1ecf1;
       border-color: #bee5eb;
+      border-radius: 10px;
     }
     
     .metric-value {
@@ -56,17 +83,110 @@
       font-size: 0.75rem;
       padding: 0.25rem 0.5rem;
     }
+
+    .filter-card {
+      background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+      border: none;
+      border-radius: 15px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+    }
+
+    .btn-filter {
+      border-radius: 25px;
+      padding: 8px 20px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+    }
+
+    .btn-filter:hover {
+      transform: translateY(-2px);
+    }
+
+    .loading-overlay {
+      position: relative;
+    }
+
+    .loading-overlay.loading::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(255, 255, 255, 0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+      border-radius: 15px;
+    }
+
+    .loading-overlay.loading::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 30px;
+      height: 30px;
+      margin: -15px 0 0 -15px;
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #007bff;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      z-index: 11;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .filter-active {
+      background: linear-gradient(135deg, #007bff, #0056b3) !important;
+      color: white !important;
+      border-color: #007bff !important;
+    }
+
+    .session-header {
+      background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+      color: white;
+      border-radius: 15px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .session-header::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 150px;
+      height: 150px;
+      background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="2"/></svg>') center/contain no-repeat;
+    }
   </style>
 </head>
 <body class="bg-light">
   <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom shadow-sm">
     <div class="container-fluid">
       <a class="navbar-brand" href="/">
-        <i class="bi bi-graph-up-arrow"></i>
-        Sistema Financeiro
+        <!-- SUA LOGO AQUI - Substitua 'logo.png' pelo nome do seu arquivo -->
+        <img src="{{ url_for('static', filename='images/logo.png') }}" 
+             alt="GROBA TECH Logo" 
+          
+             style="width: 3cm; height: 3cm; object-fit: contain;">
+        <!-- Fallback caso a logo não carregue -->
+        
+       
+        
       </a>
       <div class="navbar-nav ms-auto">
         <a class="nav-link" href="/">
+          <i class="bi bi-house-door"></i> Início
+        </a>
+        <a class="nav-link" href="{{ url_for('upload_page') }}">
           <i class="bi bi-cloud-upload"></i> Novo Upload
         </a>
       </div>
@@ -74,27 +194,45 @@
   </nav>
 
   <main class="container-fluid my-4">
-    <!-- Cabeçalho -->
-    <div class="row mb-4">
-        <div class="col">
-            <h1 class="h3">
-                <i class="bi bi-graph-up"></i> Dashboard Financeiro
-            </h1>
-            <p class="text-muted">Análise consolidada de <span class="fw-bold text-primary">{{ results|length }} planilha(s)</span> processadas</p>
+    <!-- Cabeçalho da Sessão -->
+    <div class="session-header">
+      <div class="row align-items-center">
+        <div class="col-lg-8">
+          <h1 class="h3 mb-2">
+            <i class="bi bi-graph-up"></i> {{ session_data.title }}
+          </h1>
+          {% if session_data.description %}
+          <p class="mb-2 opacity-75">{{ session_data.description }}</p>
+          {% endif %}
+          <p class="mb-0 small opacity-75">
+            Criado em {{ session_data.created_at[:10] | replace('-', '/') }} • 
+            <span id="fileCountDisplay">{{ results|length }}</span> arquivo(s) processados
+          </p>
         </div>
-        <div class="col-auto">
+        <div class="col-lg-4 text-end">
+          <div class="btn-group">
+            <a href="{{ url_for('edit_session', session_id=session_id) }}" class="btn btn-outline-light">
+              <i class="bi bi-pencil-square"></i> Editar
+            </a>
+            <button class="btn btn-outline-light" onclick="showQualityReport()">
+              <i class="bi bi-clipboard-data"></i> Relatório
+            </button>
             <div class="btn-group">
-                <button class="btn btn-outline-info" onclick="showQualityReport()">
-                    <i class="bi bi-clipboard-data"></i> Relatório de Qualidade
-                </button>
-                <a href="{{ url_for('download', session_id=session_id, format='xlsx') }}" class="btn btn-success">
-                    <i class="bi bi-file-earmark-excel"></i> Exportar Excel
-                </a>
-                <a href="{{ url_for('download', session_id=session_id, format='csv') }}" class="btn btn-outline-success">
-                    <i class="bi bi-file-earmark-text"></i> Exportar CSV
-                </a>
+              <button class="btn btn-light dropdown-toggle" data-bs-toggle="dropdown">
+                <i class="bi bi-download"></i> Exportar
+              </button>
+              <ul class="dropdown-menu">
+                <li><a class="dropdown-item" href="{{ url_for('download', session_id=session_id, format='xlsx') }}">
+                  <i class="bi bi-file-earmark-excel"></i> Excel (.xlsx)
+                </a></li>
+                <li><a class="dropdown-item" href="{{ url_for('download', session_id=session_id, format='csv') }}">
+                  <i class="bi bi-file-earmark-text"></i> CSV (.csv)
+                </a></li>
+              </ul>
             </div>
+          </div>
         </div>
+      </div>
     </div>
 
     <!-- Alertas de Qualidade -->
@@ -130,12 +268,13 @@
     <!-- Filtros -->
     <div class="row mb-4">
         <div class="col-lg-12">
-            <div class="card">
+            <div class="card filter-card">
                 <div class="card-body">
                     <h6 class="card-title mb-3">
                         <i class="bi bi-funnel"></i> Filtros e Análise
+                        <small class="text-muted" id="filterStatus"></small>
                     </h6>
-                    <div class="row g-3">
+                    <div class="row g-3 align-items-end">
                         <div class="col-md-3">
                             <label class="form-label">Ano</label>
                             <select class="form-select" id="yearFilter">
@@ -160,14 +299,14 @@
                                 <option value="12">Dezembro</option>
                             </select>
                         </div>
-                        <div class="col-md-3 d-flex align-items-end">
-                            <button class="btn btn-primary w-100" onclick="applyFilters()">
+                        <div class="col-md-3">
+                            <button class="btn btn-primary btn-filter w-100" onclick="applyFilters()">
                                 <i class="bi bi-funnel"></i> Aplicar Filtros
                             </button>
                         </div>
-                        <div class="col-md-3 d-flex align-items-end">
-                            <button class="btn btn-secondary w-100" onclick="clearFilters()">
-                                <i class="bi bi-arrow-clockwise"></i> Limpar
+                        <div class="col-md-3">
+                            <button class="btn btn-outline-secondary btn-filter w-100" onclick="clearFilters()">
+                                <i class="bi bi-arrow-clockwise"></i> Limpar Filtros
                             </button>
                         </div>
                     </div>
@@ -177,7 +316,7 @@
     </div>
 
     <!-- Métricas Principais -->
-    <div class="row mb-4" id="metricsRow">
+    <div class="row mb-4 loading-overlay" id="metricsRow">
         <div class="col-lg-3 col-md-6 mb-3">
             <div class="card bg-primary text-white card-metric h-100">
                 <div class="card-body">
@@ -185,7 +324,7 @@
                         <div class="flex-grow-1">
                             <h6 class="card-title mb-2">Total Consolidado</h6>
                             <div class="metric-value" id="totalValue">{{ metrics.formatted_total }}</div>
-                            <div class="metric-change mt-1">
+                            <div class="metric-change mt-1" id="fileCountMetric">
                                 <i class="bi bi-files"></i> {{ metrics.file_count }} arquivo(s)
                             </div>
                         </div>
@@ -263,9 +402,10 @@
                     <h6 class="mb-0">
                         <i class="bi bi-bar-chart"></i>
                         Evolução dos Valores por Período
+                        <small class="text-muted" id="chartStatus"></small>
                     </h6>
                 </div>
-                <div class="card-body">
+                <div class="card-body loading-overlay" id="chartContainer">
                     <canvas id="financialChart" height="100"></canvas>
                 </div>
             </div>
@@ -304,8 +444,8 @@
                                     <th width="10%">Aba</th>
                                     <th width="15%">Valor Total</th>
                                     <th width="10%">Período</th>
-                                    <th width="12%">Data Emissão</th>
-                                    <th width="23%">Observações</th>
+                                    <th width="15%">Datas da Planilha</th>
+                                    <th width="20%">Observações</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -417,6 +557,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     var chart = null;
     var sessionId = '{{ session_id }}';
+    var currentFilters = { year: '', month: '' };
     
     // Função para formatar moeda no padrão brasileiro
     function formatCurrencyBR(value) {
@@ -433,6 +574,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     try {
         chartData = JSON.parse(chartDataRaw);
+        console.log('📊 Dados iniciais do gráfico carregados:', chartData.length, 'pontos');
     } catch (e) {
         console.error('Erro ao carregar dados do gráfico:', e);
         chartData = [];
@@ -517,6 +659,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
         });
+        
+        // Atualiza status do gráfico
+        updateChartStatus(data.length);
     }
 
     // Aplica filtros via API
@@ -524,57 +669,75 @@ document.addEventListener('DOMContentLoaded', function() {
         var year = document.getElementById('yearFilter').value;
         var month = document.getElementById('monthFilter').value;
         
+        console.log('🔍 Aplicando filtros - Ano:', year, 'Mês:', month);
+        
+        // Atualiza filtros atuais
+        currentFilters = { year: year, month: month };
+        
+        // Mostra loading
+        showLoading();
+        updateFilterStatus(year, month);
+        
         var params = new URLSearchParams();
         if (year) params.append('year', year);
         if (month) params.append('month', month);
         
-        var metricsRow = document.getElementById('metricsRow');
-        if (metricsRow) {
-            metricsRow.style.opacity = '0.5';
-        }
-        
         fetch('/api/dashboard_data/' + sessionId + '?' + params.toString())
             .then(function(response) {
+                console.log('📡 Resposta da API:', response.status);
                 return response.json();
             })
             .then(function(data) {
+                console.log('📊 Dados filtrados recebidos:', data);
+                
                 if (data.error) {
+                    console.error('❌ Erro da API:', data.error);
                     alert('Erro: ' + data.error);
                     return;
                 }
                 
                 updateMetrics(data.metrics);
                 initChart(data.chart_data);
+                hideLoading();
                 
-                if (metricsRow) {
-                    metricsRow.style.opacity = '1';
+                // Mostra mensagem de sucesso se houver filtros
+                if (year || month) {
+                    showToast('Filtros aplicados com sucesso!', 'success');
                 }
             })
             .catch(function(error) {
-                console.error('Erro:', error);
-                alert('Erro ao aplicar filtros');
-                if (metricsRow) {
-                    metricsRow.style.opacity = '1';
-                }
+                console.error('💥 Erro na requisição:', error);
+                alert('Erro ao aplicar filtros: ' + error.message);
+                hideLoading();
             });
     };
 
     // Limpa filtros
     window.clearFilters = function() {
+        console.log('🧹 Limpando filtros...');
+        
         document.getElementById('yearFilter').value = '';
         document.getElementById('monthFilter').value = '';
+        currentFilters = { year: '', month: '' };
+        
+        updateFilterStatus('', '');
         initChart(chartData);
+        
+        // Restaura métricas originais
         location.reload();
     };
 
     // Atualiza cards de métricas
     function updateMetrics(metrics) {
+        console.log('📈 Atualizando métricas:', metrics);
+        
         var totalValueEl = document.getElementById('totalValue');
         var avgValueEl = document.getElementById('avgValue');
         var maxValueEl = document.getElementById('maxValue');
         var minValueEl = document.getElementById('minValue');
         var maxPeriodEl = document.getElementById('maxPeriod');
         var minPeriodEl = document.getElementById('minPeriod');
+        var fileCountEl = document.getElementById('fileCountMetric');
         
         if (totalValueEl) {
             totalValueEl.textContent = metrics.formatted_total || formatCurrencyBR(metrics.total_value || 0);
@@ -610,6 +773,9 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             minPeriodEl.innerHTML = '<i class="bi bi-calendar"></i> ' + minPeriod;
         }
+        if (fileCountEl) {
+            fileCountEl.innerHTML = '<i class="bi bi-files"></i> ' + (metrics.file_count || 0) + ' arquivo(s)';
+        }
     }
 
     // Popula anos únicos no filtro
@@ -629,37 +795,130 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
         
-        years.sort();
+        years.sort().reverse(); // Mais recentes primeiro
         for (var j = 0; j < years.length; j++) {
             var option = document.createElement('option');
             option.value = years[j];
             option.textContent = years[j];
             yearFilter.appendChild(option);
         }
+        
+        console.log('📅 Anos disponíveis:', years);
+    }
+
+    // Atualiza status dos filtros
+    function updateFilterStatus(year, month) {
+        var statusEl = document.getElementById('filterStatus');
+        var filterText = '';
+        
+        if (year && month) {
+            var monthNames = ['', 'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+                            'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+            filterText = '(Filtrado: ' + monthNames[parseInt(month)] + '/' + year + ')';
+        } else if (year) {
+            filterText = '(Filtrado: Ano ' + year + ')';
+        } else if (month) {
+            var monthNames = ['', 'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+                            'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+            filterText = '(Filtrado: ' + monthNames[parseInt(month)] + ')';
+        }
+        
+        if (statusEl) {
+            statusEl.textContent = filterText;
+        }
+    }
+
+    // Atualiza status do gráfico
+    function updateChartStatus(pointCount) {
+        var chartStatusEl = document.getElementById('chartStatus');
+        if (chartStatusEl) {
+            if (pointCount === 0) {
+                chartStatusEl.textContent = '(Nenhum dado para exibir)';
+                chartStatusEl.className = 'text-warning';
+            } else {
+                chartStatusEl.textContent = '(' + pointCount + ' período(s) exibido(s))';
+                chartStatusEl.className = 'text-muted';
+            }
+        }
+    }
+
+    // Mostra loading
+    function showLoading() {
+        var metricsRow = document.getElementById('metricsRow');
+        var chartContainer = document.getElementById('chartContainer');
+        
+        if (metricsRow) metricsRow.classList.add('loading');
+        if (chartContainer) chartContainer.classList.add('loading');
+    }
+
+    // Remove loading
+    function hideLoading() {
+        var metricsRow = document.getElementById('metricsRow');
+        var chartContainer = document.getElementById('chartContainer');
+        
+        if (metricsRow) metricsRow.classList.remove('loading');
+        if (chartContainer) chartContainer.classList.remove('loading');
+    }
+
+    // Toast notification
+    function showToast(message, type) {
+        // Cria container se não existir
+        var container = document.getElementById('toast-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'toast-container';
+            container.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+            container.style.zIndex = '9999';
+            document.body.appendChild(container);
+        }
+        
+        var toast = document.createElement('div');
+        toast.className = 'toast align-items-center text-white bg-' + type + ' border-0';
+        toast.setAttribute('role', 'alert');
+        toast.innerHTML = '<div class="d-flex"><div class="toast-body">' + message + '</div><button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button></div>';
+        
+        container.appendChild(toast);
+        
+        var bsToast = new bootstrap.Toast(toast);
+        bsToast.show();
+        
+        toast.addEventListener('hidden.bs.toast', function() {
+            toast.remove();
+        });
     }
 
     // Mostra relatório de qualidade
     window.showQualityReport = function() {
+        console.log('📋 Carregando relatório de qualidade...');
+        
         var modal = new bootstrap.Modal(document.getElementById('qualityReportModal'));
         modal.show();
         
         // Carrega dados do relatório
         fetch('/api/quality_report/' + sessionId)
             .then(function(response) {
+                console.log('📡 Resposta do relatório:', response.status);
                 return response.json();
             })
             .then(function(data) {
+                console.log('📊 Dados do relatório recebidos:', data);
                 renderQualityReport(data);
             })
             .catch(function(error) {
-                console.error('Erro:', error);
+                console.error('💥 Erro no relatório:', error);
                 document.getElementById('qualityReportContent').innerHTML = 
-                    '<div class="alert alert-danger">Erro ao carregar relatório de qualidade</div>';
+                    '<div class="alert alert-danger">Erro ao carregar relatório de qualidade: ' + error.message + '</div>';
             });
     };
 
     // Renderiza o relatório de qualidade
     function renderQualityReport(data) {
+        if (data.error) {
+            document.getElementById('qualityReportContent').innerHTML = 
+                '<div class="alert alert-danger">' + data.error + '</div>';
+            return;
+        }
+        
         var content = '';
         
         // Resumo geral
@@ -744,9 +1003,28 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('qualityReportContent').innerHTML = content;
     }
 
-    // Inicializa
+    // Inicialização
+    console.log('🚀 Inicializando dashboard...');
     initChart(chartData);
     populateYearFilter();
+    updateFilterStatus('', '');
+    
+    // Event listeners para Enter nos filtros
+    document.getElementById('yearFilter').addEventListener('change', function() {
+        if (this.value !== currentFilters.year || document.getElementById('monthFilter').value !== currentFilters.month) {
+            // Auto-aplicar filtros quando mudar
+            setTimeout(applyFilters, 100);
+        }
+    });
+    
+    document.getElementById('monthFilter').addEventListener('change', function() {
+        if (this.value !== currentFilters.month || document.getElementById('yearFilter').value !== currentFilters.year) {
+            // Auto-aplicar filtros quando mudar
+            setTimeout(applyFilters, 100);
+        }
+    });
+    
+    console.log('✅ Dashboard inicializado com sucesso!');
 });
   </script>
 </body>

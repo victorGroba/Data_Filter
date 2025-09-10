@@ -3,46 +3,152 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Sistema Financeiro - Início</title>
+  <title>GROBA TECH - Sistema de Análise Financeira</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
   <style>
+    body {
+      background-color: #f8f9fa;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    
     .hero-section {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #3e7cb1 100%);
       color: white;
       padding: 4rem 0;
       margin-bottom: 2rem;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .hero-section::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: radial-gradient(circle at 30% 50%, rgba(255,255,255,0.1) 0%, transparent 50%);
+      opacity: 0.3;
+    }
+    
+    .logo-container {
+      display: flex;
+      align-items: center;
+      margin-bottom: 2rem;
+      position: relative;
+      z-index: 2;
+    }
+    
+    .logo-main {
+      width: 80px;
+      height: 80px;
+      margin-right: 1.5rem;
+      border-radius: 15px;
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+      transition: all 0.3s ease;
+      background: white;
+      padding: 8px;
+      object-fit: contain;
+    }
+    
+    .logo-main:hover {
+      transform: scale(1.05) rotate(2deg);
+      box-shadow: 0 12px 35px rgba(0, 0, 0, 0.3);
+    }
+    
+    .logo-text h1 {
+      font-size: 2.5rem;
+      font-weight: 800;
+      letter-spacing: 2px;
+      margin: 0;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    }
+    
+    .logo-text p {
+      font-size: 0.9rem;
+      opacity: 0.9;
+      letter-spacing: 3px;
+      margin: 0;
+      font-weight: 300;
+      text-transform: uppercase;
+    }
+    
+    .navbar-brand {
+      font-weight: 700;
+      color: #007bff !important;
+      display: flex;
+      align-items: center;
+      transition: all 0.3s ease;
+    }
+    
+    .navbar-brand:hover {
+      transform: scale(1.02);
+    }
+    
+    .navbar-logo {
+      width: 40px;
+      height: 40px;
+      margin-right: 0.8rem;
+      border-radius: 8px;
+      object-fit: contain;
+      background: white;
+      padding: 4px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      transition: all 0.3s ease;
+    }
+    
+    .navbar-logo:hover {
+      transform: rotate(5deg);
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
     }
     
     .session-card {
       transition: all 0.3s ease;
       border: none;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+      border-radius: 15px;
+      margin-bottom: 1.5rem;
+      overflow: hidden;
     }
     
     .session-card:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+      transform: translateY(-8px);
+      box-shadow: 0 12px 35px rgba(0,0,0,0.15);
     }
     
     .session-header {
-      background: linear-gradient(45deg, #f8f9fa, #e9ecef);
+      background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
       border-bottom: 1px solid #dee2e6;
+      position: relative;
+    }
+    
+    .session-header::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 3px;
+      background: linear-gradient(90deg, #007bff, #0056b3);
     }
     
     .btn-primary-custom {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
       border: none;
       padding: 15px 30px;
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.5px;
       border-radius: 50px;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(0, 123, 255, 0.3);
     }
     
     .btn-primary-custom:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+      transform: translateY(-3px);
+      box-shadow: 0 8px 25px rgba(0, 123, 255, 0.4);
+      background: linear-gradient(135deg, #0056b3 0%, #004085 100%);
     }
     
     .stats-badge {
@@ -50,8 +156,85 @@
       color: white;
       border: 1px solid rgba(255, 255, 255, 0.3);
       backdrop-filter: blur(10px);
-      font-size: 0.9rem;
-      padding: 0.5rem 1rem;
+      padding: 1.2rem;
+      border-radius: 15px;
+      text-align: center;
+      margin-bottom: 1rem;
+      transition: all 0.3s ease;
+    }
+    
+    .stats-badge:hover {
+      background: rgba(255, 255, 255, 0.3);
+      transform: scale(1.05);
+    }
+    
+    .empty-state {
+      text-align: center;
+      padding: 3rem;
+      background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+      border-radius: 20px;
+      border: 2px dashed #dee2e6;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .empty-state::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: repeating-linear-gradient(
+        45deg,
+        transparent,
+        transparent 10px,
+        rgba(0,123,255,0.05) 10px,
+        rgba(0,123,255,0.05) 20px
+      );
+      animation: movePattern 20s linear infinite;
+    }
+    
+    @keyframes movePattern {
+      0% { transform: translate(-50%, -50%) rotate(0deg); }
+      100% { transform: translate(-50%, -50%) rotate(360deg); }
+    }
+    
+    .empty-state i {
+      font-size: 4rem;
+      color: #007bff;
+      margin-bottom: 1rem;
+      position: relative;
+      z-index: 2;
+    }
+    
+    .empty-state h4, .empty-state p, .empty-state .btn {
+      position: relative;
+      z-index: 2;
+    }
+    
+    .feature-card {
+      border: none;
+      border-radius: 20px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+      transition: all 0.3s ease;
+      overflow: hidden;
+      position: relative;
+    }
+    
+    .feature-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 4px;
+      background: linear-gradient(90deg, #007bff, #28a745, #ffc107);
+    }
+    
+    .feature-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 25px rgba(0,0,0,0.15);
     }
     
     .session-value {
@@ -64,45 +247,111 @@
       font-size: 0.875rem;
       color: #6c757d;
     }
-    
-    .action-btn {
-      margin: 0 2px;
+
+    .animate-slide-up {
+      animation: slideUp 0.6s ease-out;
     }
     
-    .empty-state {
-      text-align: center;
-      padding: 3rem;
-      background: #f8f9fa;
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .logo-fallback {
+      display: none;
+      width: 80px;
+      height: 80px;
+      background: rgba(255,255,255,0.2);
       border-radius: 15px;
-      border: 2px dashed #dee2e6;
+      align-items: center;
+      justify-content: center;
+      margin-right: 1.5rem;
+      font-size: 2.5rem;
     }
-    
-    .empty-state i {
-      font-size: 4rem;
-      color: #6c757d;
-      margin-bottom: 1rem;
+
+    .navbar-fallback {
+      display: none;
+      color: #007bff;
+      font-size: 1.5rem;
+      margin-right: 0.5rem;
     }
+    .btn-primary-custom {
+    position: relative !important;
+    z-index: 9999 !important;
+    pointer-events: auto !important;
+}
+/* Adicione ao seu CSS */
+.btn {
+    position: relative;
+    z-index: 10;
+    pointer-events: auto !important;
+}
   </style>
 </head>
-<body class="bg-light">
-  <!-- Hero Section -->
+<body>
+  <!-- Navbar com Logo -->
+  <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom shadow-sm sticky-top">
+    <div class="container">
+      <a class="navbar-brand" href="/">
+        <!-- SUA LOGO AQUI - Substitua 'logo.png' pelo nome do seu arquivo -->
+        <img src="{{ url_for('static', filename='images/logo.png') }}" 
+             alt="GROBA TECH Logo" 
+          
+             style="width: 2.5cm; height: 2.5cm; object-fit: contain;">
+        <!-- Fallback caso a logo não carregue -->
+        
+       
+        
+      </a>
+      <div class="navbar-nav ms-auto">
+        <a class="nav-link" href="{{ url_for('upload_page') }}">
+          <i class="bi bi-cloud-upload"></i> Upload
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero Section com Logo Principal -->
   <section class="hero-section">
     <div class="container">
       <div class="row align-items-center">
         <div class="col-lg-8">
-          <h1 class="display-4 fw-bold mb-3">
-            <i class="bi bi-graph-up-arrow"></i>
+          <!-- Logo Principal -->
+          <div class="logo-container">
+            <!-- SUA LOGO PRINCIPAL - Substitua 'logo.png' pelo nome do seu arquivo -->
+            <img src="{{ url_for('static', filename='images/logo.png') }}" 
+                 alt="GROBA TECH Logo" 
+                 class="logo-main"
+                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+            <!-- Fallback caso a logo não carregue -->
+            <div class="logo-fallback">
+              <i class="bi bi-graph-up-arrow"></i>
+            </div>
+            
+            <div class="logo-text">
+              <h1></h1>
+              <p>Onde ideias se tornam soluções</p>
+            </div>
+          </div>
+          
+          <h2 class="display-5 fw-bold mb-3">
             Sistema de Análise Financeira
-          </h1>
+          </h2>
           <p class="lead mb-4">
             Processe, analise e gerencie suas planilhas financeiras com facilidade. 
             Crie relatórios detalhados e mantenha um histórico organizado de suas análises.
           </p>
           <div class="d-flex gap-3 flex-wrap">
-            <a href="{{ url_for('upload_page') }}" class="btn btn-primary-custom btn-lg">
+            <a href="{{ url_for('upload') }}" class="btn btn-outline-light btn-lg" onclick="scrollToSessions()">
               <i class="bi bi-plus-circle"></i> Novo Relatório
             </a>
-            {% if sessions %}
+            {% if sessions and sessions|length > 0 %}
             <button class="btn btn-outline-light btn-lg" onclick="scrollToSessions()">
               <i class="bi bi-clock-history"></i> Ver Histórico
             </button>
@@ -112,16 +361,20 @@
         <div class="col-lg-4 text-center">
           <div class="row">
             <div class="col-6">
-              <div class="stats-badge badge rounded-pill p-3 w-100 mb-3">
-                <div class="h4 mb-1">{{ sessions|length }}</div>
+              <div class="stats-badge">
+                <div class="h4 mb-1">{{ sessions|length if sessions else 0 }}</div>
                 <small>Relatório(s) Salvos</small>
               </div>
             </div>
             <div class="col-6">
-              <div class="stats-badge badge rounded-pill p-3 w-100 mb-3">
+              <div class="stats-badge">
                 <div class="h4 mb-1">
-                  {% set total_files = sessions|sum(attribute='file_count') %}
-                  {{ total_files }}
+                  {% if sessions %}
+                    {% set total_files = sessions|sum(attribute='file_count') %}
+                    {{ total_files }}
+                  {% else %}
+                    0
+                  {% endif %}
                 </div>
                 <small>Arquivos Processados</small>
               </div>
@@ -138,7 +391,7 @@
       {% if messages %}
       <div class="mb-4">
         {% for category, message in messages %}
-        <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+        <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show animate-slide-up" role="alert">
           {{ message }}
           <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
@@ -157,7 +410,7 @@
         </h2>
         <p class="text-muted">Acesse, gerencie e analise seus relatórios anteriores</p>
       </div>
-      {% if sessions %}
+      {% if sessions and sessions|length > 0 %}
       <div class="col-auto">
         <div class="btn-group">
           <button class="btn btn-outline-secondary" onclick="sortSessions('date')">
@@ -174,7 +427,7 @@
       {% endif %}
     </div>
 
-    {% if sessions %}
+    {% if sessions and sessions|length > 0 %}
     <div class="row" id="sessionsContainer">
       {% for session in sessions %}
       <div class="col-lg-6 col-xl-4 mb-4 session-item" 
@@ -208,6 +461,11 @@
                   <li>
                     <a class="dropdown-item" href="{{ url_for('dashboard', session_id=session.id) }}">
                       <i class="bi bi-eye"></i> Visualizar
+                    </a>
+                  </li>
+                  <li>
+                    <a class="dropdown-item" href="{{ url_for('edit_session', session_id=session.id) }}">
+                      <i class="bi bi-pencil-square"></i> Editar Nome
                     </a>
                   </li>
                   <li>
@@ -277,7 +535,7 @@
   <div class="container mb-5">
     <div class="row">
       <div class="col-lg-4 mb-4">
-        <div class="card h-100 border-0 shadow-sm">
+        <div class="card feature-card h-100">
           <div class="card-body text-center p-4">
             <i class="bi bi-upload display-4 text-primary mb-3"></i>
             <h5 class="card-title">Upload Inteligente</h5>
@@ -290,7 +548,7 @@
       </div>
       
       <div class="col-lg-4 mb-4">
-        <div class="card h-100 border-0 shadow-sm">
+        <div class="card feature-card h-100">
           <div class="card-body text-center p-4">
             <i class="bi bi-graph-up-arrow display-4 text-success mb-3"></i>
             <h5 class="card-title">Análise Automática</h5>
@@ -303,7 +561,7 @@
       </div>
       
       <div class="col-lg-4 mb-4">
-        <div class="card h-100 border-0 shadow-sm">
+        <div class="card feature-card h-100">
           <div class="card-body text-center p-4">
             <i class="bi bi-save display-4 text-info mb-3"></i>
             <h5 class="card-title">Histórico Persistente</h5>
@@ -330,7 +588,7 @@
         </div>
         <div class="modal-body">
           <p>Tem certeza que deseja deletar o relatório "<strong id="sessionNameToDelete"></strong>"?</p>
-          <p class="text-muted">Esta ação não pode ser desfeita.</p>
+          <p class="text-muted">Esta ação não pode ser desfeita e todos os arquivos serão removidos.</p>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
@@ -346,31 +604,41 @@
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script>
+    // Dados para JavaScript
+    var sessionsCount = {{ sessions|length if sessions else 0 }};
+    
     // Função para rolar até as sessões
     function scrollToSessions() {
-      document.getElementById('sessionsSection').scrollIntoView({ 
-        behavior: 'smooth' 
-      });
+      var element = document.getElementById('sessionsSection');
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth' });
+      }
     }
 
     // Função para confirmar deleção
     function confirmDelete(sessionId, sessionName) {
-      document.getElementById('sessionNameToDelete').textContent = sessionName;
-      document.getElementById('deleteForm').action = '/delete_session/' + sessionId;
+      var nameElement = document.getElementById('sessionNameToDelete');
+      var formElement = document.getElementById('deleteForm');
       
-      const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
-      modal.show();
+      if (nameElement) nameElement.textContent = sessionName;
+      if (formElement) formElement.action = '/delete_session/' + sessionId;
+      
+      var modalElement = document.getElementById('deleteModal');
+      if (modalElement && typeof bootstrap !== 'undefined') {
+        var modal = new bootstrap.Modal(modalElement);
+        modal.show();
+      }
     }
 
     // Função para ordenar sessões
     function sortSessions(criteria) {
-      const container = document.getElementById('sessionsContainer');
+      var container = document.getElementById('sessionsContainer');
       if (!container) return;
       
-      const items = Array.from(container.querySelectorAll('.session-item'));
+      var items = Array.from(container.querySelectorAll('.session-item'));
       
-      items.sort((a, b) => {
-        let aValue, bValue;
+      items.sort(function(a, b) {
+        var aValue, bValue;
         
         switch(criteria) {
           case 'date':
@@ -394,30 +662,41 @@
       });
       
       // Reordena os elementos no DOM
-      items.forEach(item => container.appendChild(item));
+      items.forEach(function(item) {
+        container.appendChild(item);
+      });
       
       // Feedback visual
-      const buttons = document.querySelectorAll('[onclick^="sortSessions"]');
-      buttons.forEach(btn => btn.classList.remove('btn-primary'));
-      buttons.forEach(btn => btn.classList.add('btn-outline-secondary'));
+      var buttons = document.querySelectorAll('[onclick^="sortSessions"]');
+      buttons.forEach(function(btn) {
+        btn.classList.remove('btn-primary');
+        btn.classList.add('btn-outline-secondary');
+      });
       
-      event.target.classList.remove('btn-outline-secondary');
-      event.target.classList.add('btn-primary');
+      if (event && event.target) {
+        event.target.classList.remove('btn-outline-secondary');
+        event.target.classList.add('btn-primary');
+      }
     }
 
-    // Animação de entrada para as cards
+    // Inicialização quando a página carrega
     document.addEventListener('DOMContentLoaded', function() {
-      const cards = document.querySelectorAll('.session-card');
-      cards.forEach((card, index) => {
+      // Animação de entrada para as cards
+      var cards = document.querySelectorAll('.session-card');
+      cards.forEach(function(card, index) {
         card.style.opacity = '0';
         card.style.transform = 'translateY(20px)';
         
-        setTimeout(() => {
+        setTimeout(function() {
           card.style.transition = 'all 0.5s ease';
           card.style.opacity = '1';
           card.style.transform = 'translateY(0)';
         }, index * 100);
       });
+
+      // Log para debug
+      console.log('✅ Página home carregada com sua logo!');
+      console.log('📊 Total de sessões:', sessionsCount);
     });
   </script>
 </body>

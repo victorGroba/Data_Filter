@@ -8,6 +8,7 @@ from flask import Flask, render_template, request, redirect, url_for, flash, jso
 import pandas as pd
 import io
 import traceback
+from collections import Counter
 
 app = Flask(__name__)
 app.secret_key = 'your-secret-key-here'
@@ -76,8 +77,51 @@ def format_currency_br(value):
     except:
         return "R$ 0,00"
 
-def format_date_br(month, year):
-    """Formata data para padrão brasileiro: mm/aaaa"""
+def format_date_br(date_str):
+    """Formata data para padrão brasileiro: dd/mm/aaaa"""
+    try:
+        if not date_str or date_str == '-' or pd.isna(date_str):
+            return "-"
+        
+        # Se já está no formato brasileiro
+        if isinstance(date_str, str) and '/' in date_str and len(date_str.split('/')) == 3:
+            parts = date_str.split('/')
+            if len(parts[0]) == 2:  # já está dd/mm/aaaa
+                return date_str
+        
+        # Se está no formato YYYY-MM-DD
+        if isinstance(date_str, str) and '-' in date_str:
+            try:
+                date_obj = datetime.strptime(date_str, '%Y-%m-%d')
+                return date_obj.strftime('%d/%m/%Y')
+            except:
+                pass
+        
+        # Se é um objeto datetime
+        if hasattr(date_str, 'strftime'):
+            return date_str.strftime('%d/%m/%Y')
+        
+        # Tenta converter string para datetime
+        if isinstance(date_str, str):
+            try:
+                # Tenta vários formatos
+                for fmt in ['%Y-%m-%d', '%d/%m/%Y', '%m/%d/%Y', '%Y/%m/%d']:
+                    try:
+                        date_obj = datetime.strptime(date_str, fmt)
+                        return date_obj.strftime('%d/%m/%Y')
+                    except:
+                        continue
+            except:
+                pass
+        
+        return str(date_str)
+        
+    except Exception as e:
+        print(f"Erro ao formatar data {date_str}: {e}")
+        return "-"
+
+def format_date_period_br(month, year):
+    """Formata período para padrão brasileiro: mm/aaaa"""
     try:
         if not month or not year:
             return "-"
@@ -103,8 +147,12 @@ def currency_br_filter(value):
     return format_currency_br(value)
 
 @app.template_filter('date_br')
-def date_br_filter(month, year):
-    return format_date_br(month, year)
+def date_br_filter(date_str):
+    return format_date_br(date_str)
+
+@app.template_filter('date_period_br')
+def date_period_br_filter(month, year):
+    return format_date_period_br(month, year)
 
 @app.template_filter('month_name_br')
 def month_name_br_filter(value):
@@ -112,40 +160,66 @@ def month_name_br_filter(value):
 
 @app.route('/')
 def home():
-    """Página inicial com lista de sessões salvas"""
+    """Página inicial com lista de sessões salvas - CORRIGIDA"""
     try:
+        print("🏠 Carregando página inicial...")
+        
         conn = sqlite3.connect(DATABASE_PATH)
         cursor = conn.cursor()
         
+        # Query corrigida para buscar sessões ativas
         cursor.execute('''
-            SELECT s.*, COUNT(pf.id) as file_count, SUM(pf.total_value) as total_sum
+            SELECT 
+                s.id,
+                s.title,
+                s.description,
+                s.created_at,
+                s.updated_at,
+                s.file_count,
+                s.total_value,
+                s.status,
+                COUNT(CASE WHEN pf.success = 1 THEN 1 END) as real_file_count,
+                SUM(CASE WHEN pf.success = 1 THEN pf.total_value ELSE 0 END) as real_total_value
             FROM sessions s
-            LEFT JOIN processed_files pf ON s.id = pf.session_id AND pf.success = 1
+            LEFT JOIN processed_files pf ON s.id = pf.session_id
             WHERE s.status = 'active'
-            GROUP BY s.id
+            GROUP BY s.id, s.title, s.description, s.created_at, s.updated_at, s.file_count, s.total_value, s.status
             ORDER BY s.updated_at DESC
             LIMIT 20
         ''')
         
+        rows = cursor.fetchall()
+        print(f"📊 Query retornou {len(rows)} sessões ativas")
+        
         sessions = []
-        for row in cursor.fetchall():
-            sessions.append({
+        for row in rows:
+            # Usa os valores reais calculados da query
+            file_count = row[8] or 0  # real_file_count
+            total_value = row[9] or 0  # real_total_value
+            
+            session_data = {
                 'id': row[0],
                 'title': row[1],
-                'description': row[2],
+                'description': row[2] or '',
                 'created_at': row[3],
                 'updated_at': row[4],
-                'file_count': row[6] or 0,
-                'total_value': row[7] or 0,
-                'status': row[8],
-                'formatted_total': format_currency_br(row[7] or 0)
-            })
+                'file_count': file_count,
+                'total_value': total_value,
+                'status': row[7],
+                'formatted_total': format_currency_br(total_value)
+            }
+            sessions.append(session_data)
+            print(f"✅ Sessão: {session_data['title']} - {file_count} arquivos - {session_data['formatted_total']}")
         
         conn.close()
+        
+        print(f"🎯 Enviando {len(sessions)} sessões para o template")
         return render_template('home.html', sessions=sessions)
         
     except Exception as e:
-        print(f"Erro ao carregar home: {e}")
+        print(f"❌ Erro ao carregar home: {e}")
+        import traceback
+        traceback.print_exc()
         return render_template('home.html', sessions=[])
 
 @app.route('/upload')
@@ -160,6 +234,7 @@ def new_session():
 
 @app.route('/upload', methods=['POST'])
 def upload():
+    """Upload corrigido com melhor tratamento de arquivos"""
     try:
         print("📤 Iniciando upload...")
         
@@ -167,16 +242,31 @@ def upload():
         session_title = request.form.get('session_title', '').strip()
         session_description = request.form.get('session_description', '').strip()
         
-        files = request.files.getlist('files[]')
-        if not files or all(f.filename == '' for f in files):
-            flash('Nenhum arquivo foi selecionado.', 'warning')
+        # Corrige a obtenção dos arquivos
+        files = []
+        if 'files[]' in request.files:
+            files = request.files.getlist('files[]')
+        elif 'files' in request.files:
+            files = [request.files['files']]
+        
+        # Filtra arquivos válidos
+        valid_files = []
+        for file in files:
+            if file and file.filename and file.filename.strip():
+                if file.filename.endswith(('.xlsx', '.xls', '.csv')):
+                    valid_files.append(file)
+                else:
+                    flash(f'Arquivo {file.filename} tem formato não suportado.', 'warning')
+        
+        if not valid_files:
+            flash('Nenhum arquivo válido foi selecionado.', 'warning')
             return redirect(url_for('upload_page'))
         
         # Gera título automático se não fornecido
         if not session_title:
             session_title = f"Relatório {datetime.now().strftime('%d/%m/%Y %H:%M')}"
         
-        print(f"📁 {len(files)} arquivo(s) recebido(s) para sessão: {session_title}")
+        print(f"📁 {len(valid_files)} arquivo(s) válido(s) recebido(s) para sessão: {session_title}")
         
         # Cria nova sessão
         session_id = str(uuid.uuid4())
@@ -186,35 +276,37 @@ def upload():
         successful_files = 0
         total_value = 0
         
-        for i, file in enumerate(files):
+        for i, file in enumerate(valid_files):
             try:
-                if file and file.filename and file.filename.endswith(('.xlsx', '.xls', '.csv')):
-                    print(f"📊 Processando arquivo {i+1}/{len(files)}: {file.filename}")
-                    
-                    # Salva arquivo temporariamente
-                    filename = f"{uuid.uuid4()}_{file.filename}"
-                    filepath = os.path.join(UPLOAD_FOLDER, filename)
-                    file.save(filepath)
-                    
-                    # Processa arquivo
-                    result = process_file(filepath, file.filename)
-                    results.append(result)
-                    
-                    if result.get('success', False):
-                        successful_files += 1
-                        total_value += result.get('total_value', 0)
-                    
-                    # Salva no banco
-                    save_processed_file(session_id, result)
-                    
-                    # Remove arquivo temporário
-                    try:
-                        os.remove(filepath)
-                    except:
-                        pass
+                print(f"📊 Processando arquivo {i+1}/{len(valid_files)}: {file.filename}")
+                
+                # Gera nome único para o arquivo
+                file_extension = os.path.splitext(file.filename)[1]
+                unique_filename = f"{uuid.uuid4()}{file_extension}"
+                filepath = os.path.join(UPLOAD_FOLDER, unique_filename)
+                
+                # Salva arquivo
+                file.save(filepath)
+                print(f"✅ Arquivo salvo: {filepath}")
+                
+                # Processa arquivo
+                result = process_file(filepath, file.filename)
+                results.append(result)
+                
+                if result.get('success', False):
+                    successful_files += 1
+                    total_value += result.get('total_value', 0)
+                
+                # Salva no banco
+                save_processed_file(session_id, result, unique_filename)
+                
+                # Mantém arquivo salvo para possível reprocessamento
+                print(f"🔄 Arquivo processado: {file.filename}")
                         
             except Exception as e:
                 print(f"❌ Erro ao processar {file.filename}: {str(e)}")
+                traceback.print_exc()
+                
                 error_result = {
                     'filename': file.filename,
                     'error': f'Erro no processamento: {str(e)}',
@@ -222,20 +314,22 @@ def upload():
                     'total_value': 0.0,
                     'month': None,
                     'year': None,
+                    'emission_date': None,
+                    'due_date': None,
                     'warnings': [f'Erro no processamento: {str(e)}'],
                     'data_quality': 'error'
                 }
                 results.append(error_result)
-                save_processed_file(session_id, error_result)
+                save_processed_file(session_id, error_result, '')
         
         # Salva sessão no banco
         save_session(session_id, session_title, session_description, successful_files, total_value)
         
         # Feedback para o usuário
-        if successful_files == len(files):
+        if successful_files == len(valid_files):
             flash(f'✅ Todos os {successful_files} arquivo(s) foram processados com sucesso!', 'success')
         elif successful_files > 0:
-            flash(f'⚠️ {successful_files} de {len(files)} arquivo(s) processados com sucesso.', 'warning')
+            flash(f'⚠️ {successful_files} de {len(valid_files)} arquivo(s) processados com sucesso.', 'warning')
         else:
             flash(f'❌ Nenhum arquivo foi processado com sucesso.', 'error')
         
@@ -265,7 +359,7 @@ def save_session(session_id, title, description, file_count, total_value):
     except Exception as e:
         print(f"Erro ao salvar sessão: {e}")
 
-def save_processed_file(session_id, result):
+def save_processed_file(session_id, result, stored_filename=''):
     """Salva arquivo processado no banco de dados"""
     try:
         conn = sqlite3.connect(DATABASE_PATH)
@@ -281,8 +375,8 @@ def save_processed_file(session_id, result):
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', (
             session_id,
-            result.get('filename', ''),
-            result.get('filename', ''),
+            stored_filename,  # Nome do arquivo salvo no disco
+            result.get('filename', ''),  # Nome original
             result.get('sheet_name', ''),
             result.get('total_value', 0),
             result.get('emission_date'),
@@ -300,6 +394,32 @@ def save_processed_file(session_id, result):
         
     except Exception as e:
         print(f"Erro ao salvar arquivo processado: {e}")
+
+def cleanup_session_files(session_id):
+    """Remove arquivos físicos da sessão"""
+    try:
+        conn = sqlite3.connect(DATABASE_PATH)
+        cursor = conn.cursor()
+        
+        # Busca todos os arquivos da sessão
+        cursor.execute('SELECT filename FROM processed_files WHERE session_id = ?', (session_id,))
+        files = cursor.fetchall()
+        
+        # Remove arquivos físicos
+        for (filename,) in files:
+            if filename and filename.strip():
+                filepath = os.path.join(UPLOAD_FOLDER, filename)
+                try:
+                    if os.path.exists(filepath):
+                        os.remove(filepath)
+                        print(f"🗑️ Arquivo removido: {filepath}")
+                except Exception as e:
+                    print(f"Erro ao remover arquivo {filepath}: {e}")
+        
+        conn.close()
+        
+    except Exception as e:
+        print(f"Erro na limpeza de arquivos: {e}")
 
 def load_session_data(session_id):
     """Carrega dados da sessão do banco de dados"""
@@ -330,19 +450,19 @@ def load_session_data(session_id):
         for row in files_rows:
             warnings = json.loads(row[12]) if row[12] else []
             result = {
-                'filename': row[2],
-                'original_filename': row[3],
+                'filename': row[3],  # original_filename
+                'stored_filename': row[2],  # filename no disco
                 'sheet_name': row[4],
                 'total_value': row[5],
-                'emission_date': row[6],
-                'due_date': row[7],
+                'emission_date': format_date_br(row[6]) if row[6] else None,
+                'due_date': format_date_br(row[7]) if row[7] else None,
                 'month': row[8],
                 'year': row[9],
                 'success': bool(row[10]),
                 'error': row[11],
                 'warnings': warnings,
                 'data_quality': row[13],
-                'formatted_date': format_date_br(row[8], row[9]),
+                'formatted_date': format_date_period_br(row[8], row[9]),
                 'formatted_value': format_currency_br(row[5])
             }
             results.append(result)
@@ -354,23 +474,39 @@ def load_session_data(session_id):
         print(f"Erro ao carregar sessão: {e}")
         return None, []
 
-@app.route('/dashboard/<session_id>')
-def dashboard(session_id):
+def calculate_metrics(results, year_filter=None, month_filter=None):
+    """Calcula métricas com filtros opcionais"""
     try:
-        # Carrega dados da sessão
-        session_data, results = load_session_data(session_id)
+        # Aplica filtros
+        filtered_results = []
+        for r in results:
+            if not r.get('success', False) or not r.get('total_value', 0) > 0:
+                continue
+            
+            if year_filter and r.get('year') != int(year_filter):
+                continue
+                
+            if month_filter and r.get('month') != int(month_filter):
+                continue
+                
+            filtered_results.append(r)
         
-        if not session_data:
-            flash('Sessão não encontrada.', 'error')
-            return redirect(url_for('home'))
+        if not filtered_results:
+            return {
+                'total_value': 0,
+                'average_monthly': 0,
+                'file_count': 0,
+                'max_month': {'value': 0, 'period': 'N/A'},
+                'min_month': {'value': 0, 'period': 'N/A'},
+                'formatted_total': format_currency_br(0),
+                'formatted_average': format_currency_br(0),
+                'quality_stats': {'good': 0, 'warning': 0, 'poor': 0, 'error': 0}
+            }
         
-        # Calcula métricas
-        successful_results = [r for r in results if r.get('success', False) and r.get('total_value', 0) > 0]
-        
-        total_values = [r.get('total_value', 0) for r in successful_results]
+        total_values = [r.get('total_value', 0) for r in filtered_results]
         total_sum = sum(total_values)
         avg_monthly = total_sum / len(total_values) if total_values else 0.0
-        file_count = len(results)
+        file_count = len(filtered_results)
         max_value = max(total_values) if total_values else 0.0
         min_value = min(total_values) if total_values else 0.0
         
@@ -378,15 +514,64 @@ def dashboard(session_id):
         max_period = "N/A"
         min_period = "N/A"
         
-        for r in successful_results:
+        for r in filtered_results:
             if r.get('total_value', 0) == max_value:
-                max_period = format_date_br(r.get('month'), r.get('year'))
+                max_period = format_date_period_br(r.get('month'), r.get('year'))
                 break
         
-        for r in successful_results:
+        for r in filtered_results:
             if r.get('total_value', 0) == min_value:
-                min_period = format_date_br(r.get('month'), r.get('year'))
+                min_period = format_date_period_br(r.get('month'), r.get('year'))
                 break
+        
+        # Calcula estatísticas de qualidade
+        quality_stats = {
+            'good': len([r for r in results if r.get('data_quality') == 'good']),
+            'warning': len([r for r in results if r.get('data_quality') == 'warning']),
+            'poor': len([r for r in results if r.get('data_quality') == 'poor']),
+            'error': len([r for r in results if r.get('data_quality') == 'error'])
+        }
+        
+        return {
+            'total_value': total_sum,
+            'average_monthly': avg_monthly,
+            'file_count': file_count,
+            'max_month': {'value': max_value, 'period': max_period},
+            'min_month': {'value': min_value, 'period': min_period},
+            'formatted_total': format_currency_br(total_sum),
+            'formatted_average': format_currency_br(avg_monthly),
+            'quality_stats': quality_stats
+        }
+        
+    except Exception as e:
+        print(f"Erro no cálculo de métricas: {e}")
+        return {
+            'total_value': 0,
+            'average_monthly': 0,
+            'file_count': 0,
+            'max_month': {'value': 0, 'period': 'N/A'},
+            'min_month': {'value': 0, 'period': 'N/A'},
+            'formatted_total': format_currency_br(0),
+            'formatted_average': format_currency_br(0),
+            'quality_stats': {'good': 0, 'warning': 0, 'poor': 0, 'error': 0}
+        }
+
+def get_chart_data(results, year_filter=None, month_filter=None):
+    """Gera dados do gráfico com filtros"""
+    try:
+        # Filtra resultados válidos
+        successful_results = []
+        for r in results:
+            if not r.get('success', False) or not r.get('total_value', 0) > 0:
+                continue
+            
+            if year_filter and r.get('year') != int(year_filter):
+                continue
+                
+            if month_filter and r.get('month') != int(month_filter):
+                continue
+                
+            successful_results.append(r)
         
         # Dados para gráfico ordenados por data
         chart_data = []
@@ -397,32 +582,32 @@ def dashboard(session_id):
             
             if month and year and total > 0:
                 chart_data.append({
-                    'Label': format_date_br(month, year),
+                    'Label': format_date_period_br(month, year),
                     'Total': total,
                     'sort_key': f"{year:04d}{month:02d}"
                 })
         
         # Ordena por data
         chart_data.sort(key=lambda x: x['sort_key'])
+        return chart_data
         
-        # Calcula estatísticas de qualidade
-        quality_stats = {
-            'good': len([r for r in results if r.get('data_quality') == 'good']),
-            'warning': len([r for r in results if r.get('data_quality') == 'warning']),
-            'poor': len([r for r in results if r.get('data_quality') == 'poor']),
-            'error': len([r for r in results if r.get('data_quality') == 'error'])
-        }
+    except Exception as e:
+        print(f"Erro na geração de dados do gráfico: {e}")
+        return []
+
+@app.route('/dashboard/<session_id>')
+def dashboard(session_id):
+    try:
+        # Carrega dados da sessão
+        session_data, results = load_session_data(session_id)
         
-        metrics = {
-            'total_value': total_sum,
-            'average_monthly': avg_monthly,
-            'file_count': file_count,
-            'max_month': {'value': max_value, 'period': max_period},
-            'min_month': {'value': min_value, 'period': min_period},
-            'formatted_total': format_currency_br(total_sum),
-            'formatted_average': format_currency_br(avg_monthly),
-            'quality_stats': quality_stats
-        }
+        if not session_data:
+            flash('Sessão não encontrada.', 'error')
+            return redirect(url_for('home'))
+        
+        # Calcula métricas sem filtros (dados iniciais)
+        metrics = calculate_metrics(results)
+        chart_data = get_chart_data(results)
         
         return render_template('dashboard.html', 
                              session_id=session_id,
@@ -437,12 +622,184 @@ def dashboard(session_id):
         flash(f'Erro ao carregar dashboard: {str(e)}', 'error')
         return redirect(url_for('home'))
 
+@app.route('/api/dashboard_data/<session_id>')
+def api_dashboard_data(session_id):
+    """API para dados filtrados do dashboard"""
+    try:
+        year_filter = request.args.get('year')
+        month_filter = request.args.get('month')
+        
+        print(f"🔍 Filtros recebidos - Ano: {year_filter}, Mês: {month_filter}")
+        
+        # Carrega dados da sessão
+        session_data, results = load_session_data(session_id)
+        
+        if not session_data:
+            return jsonify({'error': 'Sessão não encontrada'}), 404
+        
+        # Calcula métricas com filtros
+        metrics = calculate_metrics(results, year_filter, month_filter)
+        chart_data = get_chart_data(results, year_filter, month_filter)
+        
+        print(f"📊 Dados filtrados - Total: {metrics['formatted_total']}, Arquivos: {metrics['file_count']}")
+        
+        return jsonify({
+            'success': True,
+            'metrics': metrics,
+            'chart_data': chart_data
+        })
+        
+    except Exception as e:
+        print(f"Erro na API de dados do dashboard: {e}")
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/quality_report/<session_id>')
+def api_quality_report(session_id):
+    """API para relatório de qualidade"""
+    try:
+        session_data, results = load_session_data(session_id)
+        
+        if not session_data:
+            return jsonify({'error': 'Sessão não encontrada'}), 404
+        
+        # Análise de qualidade
+        total_files = len(results)
+        successful_files = len([r for r in results if r.get('success', False)])
+        files_with_warnings = len([r for r in results if r.get('warnings') and len(r.get('warnings', [])) > 0])
+        
+        # Estatísticas dos valores
+        successful_results = [r for r in results if r.get('success', False) and r.get('total_value', 0) > 0]
+        values = [r.get('total_value', 0) for r in successful_results]
+        
+        value_statistics = {}
+        if values:
+            values_sorted = sorted(values)
+            value_statistics = {
+                'count': len(values),
+                'total': sum(values),
+                'average': sum(values) / len(values),
+                'median': values_sorted[len(values_sorted) // 2] if values_sorted else 0,
+                'max': max(values),
+                'min': min(values)
+            }
+        
+        # Problemas mais comuns
+        all_warnings = []
+        for r in results:
+            if r.get('warnings'):
+                all_warnings.extend(r.get('warnings', []))
+        
+        if r.get('error'):
+            all_warnings.append(r.get('error'))
+        
+        common_issues = Counter(all_warnings).most_common(10)
+        
+        # Distribuição por anos
+        years = [r.get('year') for r in results if r.get('year')]
+        years_distribution = Counter(years).most_common()
+        
+        # Recomendações
+        recommendations = []
+        
+        if files_with_warnings > total_files * 0.3:
+            recommendations.append({
+                'type': 'warning',
+                'title': 'Muitos Arquivos com Alertas',
+                'description': f'{files_with_warnings} de {total_files} arquivos têm alertas. Verifique a nomeação e estrutura dos arquivos.',
+                'files': [r.get('filename') for r in results if r.get('warnings')][:5]
+            })
+        
+        if successful_files < total_files * 0.8:
+            recommendations.append({
+                'type': 'error',
+                'title': 'Taxa de Sucesso Baixa',
+                'description': f'Apenas {successful_files} de {total_files} arquivos foram processados com sucesso.',
+                'files': [r.get('filename') for r in results if not r.get('success', False)][:5]
+            })
+        
+        if value_statistics and value_statistics.get('count', 0) > 0:
+            avg_value = value_statistics['average']
+            outliers = [r for r in successful_results if abs(r.get('total_value', 0) - avg_value) > avg_value * 2]
+            if outliers:
+                recommendations.append({
+                    'type': 'info',
+                    'title': 'Valores Atípicos Detectados',
+                    'description': f'{len(outliers)} arquivo(s) com valores muito diferentes da média.',
+                    'files': [r.get('filename') for r in outliers][:3]
+                })
+        
+        return jsonify({
+            'success': True,
+            'summary': {
+                'total_files': total_files,
+                'successful_files': successful_files,
+                'files_with_warnings': files_with_warnings,
+                'success_rate': (successful_files / total_files * 100) if total_files > 0 else 0,
+                'warning_rate': (files_with_warnings / total_files * 100) if total_files > 0 else 0
+            },
+            'value_statistics': value_statistics,
+            'common_issues': common_issues,
+            'years_distribution': years_distribution,
+            'recommendations': recommendations
+        })
+        
+    except Exception as e:
+        print(f"Erro no relatório de qualidade: {e}")
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/edit_session/<session_id>', methods=['GET', 'POST'])
+def edit_session(session_id):
+    """Edita informações da sessão"""
+    try:
+        if request.method == 'POST':
+            new_title = request.form.get('title', '').strip()
+            new_description = request.form.get('description', '').strip()
+            
+            if not new_title:
+                flash('Título é obrigatório.', 'error')
+                return redirect(url_for('edit_session', session_id=session_id))
+            
+            conn = sqlite3.connect(DATABASE_PATH)
+            cursor = conn.cursor()
+            
+            cursor.execute('''
+                UPDATE sessions 
+                SET title = ?, description = ?, updated_at = CURRENT_TIMESTAMP 
+                WHERE id = ?
+            ''', (new_title, new_description, session_id))
+            
+            conn.commit()
+            conn.close()
+            
+            flash('Relatório atualizado com sucesso!', 'success')
+            return redirect(url_for('dashboard', session_id=session_id))
+        
+        # GET - Carrega dados para edição
+        session_data, _ = load_session_data(session_id)
+        if not session_data:
+            flash('Sessão não encontrada.', 'error')
+            return redirect(url_for('home'))
+        
+        return render_template('edit_session.html', session_data=session_data)
+        
+    except Exception as e:
+        flash('Erro ao editar sessão.', 'error')
+        return redirect(url_for('home'))
+
 @app.route('/delete_session/<session_id>', methods=['POST'])
 def delete_session(session_id):
-    """Deleta uma sessão"""
+    """Deleta uma sessão E remove os arquivos físicos"""
     try:
+        # Remove arquivos físicos primeiro
+        cleanup_session_files(session_id)
+        
         conn = sqlite3.connect(DATABASE_PATH)
         cursor = conn.cursor()
+        
+        # Remove registros dos arquivos processados
+        cursor.execute('DELETE FROM processed_files WHERE session_id = ?', (session_id,))
         
         # Marca sessão como deletada (soft delete)
         cursor.execute('UPDATE sessions SET status = ? WHERE id = ?', ('deleted', session_id))
@@ -450,7 +807,7 @@ def delete_session(session_id):
         conn.commit()
         conn.close()
         
-        flash('Sessão deletada com sucesso.', 'success')
+        flash('Sessão e arquivos deletados com sucesso.', 'success')
         return redirect(url_for('home'))
         
     except Exception as e:
@@ -480,7 +837,7 @@ def duplicate_session(session_id):
         
         # Copia arquivos
         for result in results:
-            save_processed_file(new_session_id, result)
+            save_processed_file(new_session_id, result, result.get('stored_filename', ''))
         
         flash(f'Sessão duplicada com sucesso: {new_title}', 'success')
         return redirect(url_for('dashboard', session_id=new_session_id))
@@ -508,10 +865,9 @@ def download():
         for r in results:
             rows.append({
                 'Arquivo': r.get('filename'),
-                'Mês': r.get('month'),
-                'Ano': r.get('year'),
-                'Data Emissão': r.get('emission_date'),
-                'Data Vencimento': r.get('due_date'),
+                'Período': f"{r.get('month'):02d}/{r.get('year')}" if r.get('month') and r.get('year') else '-',
+                'Data Emissão': r.get('emission_date') or '-',
+                'Data Vencimento': r.get('due_date') or '-',
                 'Valor Total': r.get('total_value', 0.0),
                 'Qualidade': r.get('data_quality'),
                 'Avisos': '; '.join(r.get('warnings', []) if isinstance(r.get('warnings'), list) else [])
@@ -522,9 +878,6 @@ def download():
         from flask import send_file
 
         df = pd.DataFrame(rows)
-
-        # Se quiser exportar apenas os bem-sucedidos, use:
-        # df = df[df['Qualidade'].isin(['good', 'warning']) | df['Valor Total'].fillna(0).gt(0)]
 
         # Nome do arquivo
         safe_title = re.sub(r'[^a-zA-Z0-9_-]+', '_', session_data.get('title', f'sessao_{session_id}'))
@@ -549,9 +902,9 @@ def download():
             # (Opcional) cria um pequeno resumo por mês/ano
             try:
                 resumo = (df.assign(Valor=df['Valor Total'].fillna(0.0))
-                            .groupby(['Ano', 'Mês'], dropna=False)['Valor'].sum()
+                            .groupby(['Período'], dropna=False)['Valor'].sum()
                             .reset_index()
-                            .sort_values(by=['Ano', 'Mês']))
+                            .sort_values(by=['Período']))
                 resumo.to_excel(writer, sheet_name='Resumo', index=False)
             except Exception:
                 # se algo der errado no resumo, seguimos apenas com a aba Dados
@@ -571,9 +924,7 @@ def download():
         flash('Falha ao gerar o arquivo de exportação.', 'error')
         return redirect(url_for('dashboard', session_id=session_id))
 
-
-# Resto das funções (process_file, extract_total_value, etc.) permanecem iguais...
-# [Inclua aqui as funções de processamento que já estavam funcionando]
+# Funções de processamento melhoradas
 
 def safe_float(value):
     """Converte valor para float de forma segura"""
@@ -669,6 +1020,16 @@ def validate_extracted_data(result):
         if result['month'] and (result['month'] < 1 or result['month'] > 12):
             warnings.append(f"⚠️ Mês {result['month']} é inválido")
         
+        # Valida datas de emissão e vencimento
+        if result.get('emission_date') and result.get('due_date'):
+            try:
+                emission = datetime.strptime(result['emission_date'], '%d/%m/%Y')
+                due = datetime.strptime(result['due_date'], '%d/%m/%Y')
+                if due < emission:
+                    warnings.append("⚠️ Data de vencimento anterior à emissão")
+            except:
+                pass
+        
         result['warnings'] = warnings
         result['data_quality'] = 'good' if len(warnings) == 0 else 'warning' if len(warnings) <= 2 else 'poor'
         
@@ -681,7 +1042,7 @@ def validate_extracted_data(result):
         return result
 
 def process_file(filepath, original_name):
-    """Processa um único arquivo"""
+    """Processa um único arquivo com extração melhorada de datas"""
     try:
         print(f"📊 Processando: {original_name}")
         
@@ -703,7 +1064,7 @@ def process_file(filepath, original_name):
             sheet_name = target_sheet
         
         total_value = extract_total_value(df)
-        emission_date, due_date = extract_dates(df)
+        emission_date, due_date = extract_dates_improved(df)
         month, year = extract_date_from_filename_improved(original_name)
         
         result = {
@@ -715,7 +1076,7 @@ def process_file(filepath, original_name):
             'month': safe_int(month),
             'year': safe_int(year),
             'success': True,
-            'formatted_date': format_date_br(month, year),
+            'formatted_date': format_date_period_br(month, year),
             'formatted_value': format_currency_br(safe_float(total_value))
         }
         
@@ -731,6 +1092,8 @@ def process_file(filepath, original_name):
             'total_value': 0.0,
             'month': None,
             'year': None,
+            'emission_date': None,
+            'due_date': None,
             'warnings': [f'Erro no processamento: {str(e)}'],
             'data_quality': 'error',
             'formatted_date': '-',
@@ -746,7 +1109,6 @@ def extract_total_value(df):
             row_str = ' '.join([str(val).lower() for val in row.values if pd.notna(val)])
             if 'total' in row_str:
                 for col in df.columns:
-                    
                     try:
                         value = pd.to_numeric(row[col], errors='coerce')
                         if pd.notna(value) and abs(value) > abs(max_value):
@@ -769,30 +1131,167 @@ def extract_total_value(df):
     except Exception as e:
         print(f"Erro na extração de valor: {e}")
         return 0.0
+    
+    # Adicione esta função no seu app.py
 
-def extract_dates(df):
-    """Extrai datas do DataFrame"""
+def load_session_data(session_id):
+    """Carrega dados da sessão do banco de dados"""
+    try:
+        conn = sqlite3.connect(DATABASE_PATH)
+        cursor = conn.cursor()
+        
+        # Carrega dados da sessão
+        cursor.execute('SELECT * FROM sessions WHERE id = ?', (session_id,))
+        session_row = cursor.fetchone()
+        
+        if not session_row:
+            return None, []
+        
+        session_data = {
+            'id': session_row[0],
+            'title': session_row[1],
+            'description': session_row[2],
+            'created_at': session_row[3],
+            'updated_at': session_row[4]
+        }
+        
+        # Carrega arquivos processados ORDENADOS POR ANO E MÊS
+        cursor.execute('''
+            SELECT * FROM processed_files 
+            WHERE session_id = ? 
+            ORDER BY 
+                CASE WHEN year_ref IS NULL THEN 1 ELSE 0 END,
+                year_ref ASC,
+                CASE WHEN month_ref IS NULL THEN 1 ELSE 0 END,
+                month_ref ASC,
+                processed_at ASC
+        ''', (session_id,))
+        files_rows = cursor.fetchall()
+        
+        results = []
+        for row in files_rows:
+            warnings = json.loads(row[12]) if row[12] else []
+            result = {
+                'filename': row[3],  # original_filename
+                'stored_filename': row[2],  # filename no disco
+                'sheet_name': row[4],
+                'total_value': row[5],
+                'emission_date': format_date_br(row[6]) if row[6] else None,
+                'due_date': format_date_br(row[7]) if row[7] else None,
+                'month': row[8],
+                'year': row[9],
+                'success': bool(row[10]),
+                'error': row[11],
+                'warnings': warnings,
+                'data_quality': row[13],
+                'formatted_date': format_date_period_br(row[8], row[9]) if row[8] and row[9] else '-',
+                'formatted_value': format_currency_br(row[5])
+            }
+            results.append(result)
+        
+        conn.close()
+        return session_data, results
+        
+    except Exception as e:
+        print(f"Erro ao carregar sessão: {e}")
+        return None, []
+
+def extract_dates_improved(df):
+    """Extrai datas do DataFrame com melhor formatação"""
     try:
         emission_date = None
         due_date = None
         
-        for col in df.columns:
-            col_name = str(col).lower()
-            try:
-                if any(term in col_name for term in ['emissão', 'emissao', 'emitido']):
-                    date_series = pd.to_datetime(df[col], errors='coerce')
-                    valid_date = date_series.dropna().iloc[0] if not date_series.dropna().empty else None
-                    if valid_date:
-                        emission_date = valid_date.strftime('%Y-%m-%d')
-                
-                if any(term in col_name for term in ['vencimento', 'vence']):
-                    date_series = pd.to_datetime(df[col], errors='coerce')
-                    valid_date = date_series.dropna().iloc[0] if not date_series.dropna().empty else None
-                    if valid_date:
-                        due_date = valid_date.strftime('%Y-%m-%d')
-            except:
-                continue
+        print("🔍 Procurando datas na planilha...")
         
+        # Busca em todas as células por datas
+        for idx, row in df.iterrows():
+            for col in df.columns:
+                cell_value = row[col]
+                if pd.isna(cell_value):
+                    continue
+                    
+                cell_str = str(cell_value).lower()
+                
+                # Verifica se é uma data válida
+                date_obj = None
+                try:
+                    # Tenta converter diretamente se for datetime
+                    if hasattr(cell_value, 'strftime'):
+                        date_obj = cell_value
+                    else:
+                        # Tenta vários formatos de data
+                        date_str = str(cell_value).strip()
+                        if len(date_str) >= 8:  # Pelo menos 8 caracteres para uma data
+                            for fmt in ['%d/%m/%Y', '%Y-%m-%d', '%d-%m-%Y', '%m/%d/%Y']:
+                                try:
+                                    date_obj = datetime.strptime(date_str, fmt)
+                                    break
+                                except:
+                                    continue
+                                    
+                    if date_obj:
+                        formatted_date = date_obj.strftime('%d/%m/%Y')
+                        
+                        # Busca contexto para identificar tipo de data
+                        context = []
+                        # Verifica célula anterior e posterior
+                        if idx > 0:
+                            prev_cell = str(df.iloc[idx-1, df.columns.get_loc(col)]).lower()
+                            context.append(prev_cell)
+                        if idx < len(df) - 1:
+                            next_cell = str(df.iloc[idx+1, df.columns.get_loc(col)]).lower()
+                            context.append(next_cell)
+                        # Verifica nome da coluna
+                        context.append(str(col).lower())
+                        
+                        context_str = ' '.join(context)
+                        
+                        # Identifica se é data de emissão
+                        if any(term in context_str for term in ['emissão', 'emissao', 'emitido', 'emission']):
+                            if not emission_date:
+                                emission_date = formatted_date
+                                print(f"📅 Data de emissão encontrada: {emission_date}")
+                        
+                        # Identifica se é data de vencimento
+                        elif any(term in context_str for term in ['vencimento', 'vence', 'due', 'expir']):
+                            if not due_date:
+                                due_date = formatted_date
+                                print(f"📅 Data de vencimento encontrada: {due_date}")
+                        
+                        # Se não tem contexto específico, usa a primeira como emissão e segunda como vencimento
+                        elif not emission_date and not due_date:
+                            emission_date = formatted_date
+                            print(f"📅 Primeira data encontrada (assumindo emissão): {emission_date}")
+                        elif emission_date and not due_date:
+                            due_date = formatted_date
+                            print(f"📅 Segunda data encontrada (assumindo vencimento): {due_date}")
+                            
+                except Exception as date_error:
+                    continue
+        
+        # Busca em colunas específicas se não encontrou
+        if not emission_date or not due_date:
+            for col in df.columns:
+                col_name = str(col).lower()
+                try:
+                    if any(term in col_name for term in ['emissão', 'emissao', 'emitido']) and not emission_date:
+                        date_series = pd.to_datetime(df[col], errors='coerce')
+                        valid_date = date_series.dropna().iloc[0] if not date_series.dropna().empty else None
+                        if valid_date:
+                            emission_date = valid_date.strftime('%d/%m/%Y')
+                            print(f"📅 Data de emissão da coluna {col}: {emission_date}")
+                    
+                    if any(term in col_name for term in ['vencimento', 'vence']) and not due_date:
+                        date_series = pd.to_datetime(df[col], errors='coerce')
+                        valid_date = date_series.dropna().iloc[0] if not date_series.dropna().empty else None
+                        if valid_date:
+                            due_date = valid_date.strftime('%d/%m/%Y')
+                            print(f"📅 Data de vencimento da coluna {col}: {due_date}")
+                except:
+                    continue
+        
+        print(f"✅ Extração de datas concluída - Emissão: {emission_date}, Vencimento: {due_date}")
         return emission_date, due_date
         
     except Exception as e:
@@ -800,7 +1299,8 @@ def extract_dates(df):
         return None, None
 
 if __name__ == '__main__':
-    print("🚀 Iniciando Sistema Financeiro com Persistência...")
+    print("🚀 Iniciando Sistema Financeiro com Datas Melhoradas...")
     print("📍 Acesse: http://localhost:5000")
     print("💾 Banco de dados: financial_reports.db")
+    print("📅 Formatação de datas: dd/mm/aaaa")
     app.run(host='0.0.0.0', port=5000, debug=True)
