@@ -1,83 +1,554 @@
-{% extends 'base.html' %}
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Upload de Planilhas - Sistema Financeiro</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+  <style>
+    .drag-drop-area {
+      border: 2px dashed #007bff;
+      border-radius: 10px;
+      padding: 40px;
+      text-align: center;
+      background-color: #f8f9fa;
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+    
+    .drag-drop-area:hover, .drag-drop-area.drag-over {
+      border-color: #0056b3;
+      background-color: #e3f2fd;
+      transform: translateY(-2px);
+    }
+    
+    .file-item {
+      background: white;
+      border: 1px solid #dee2e6;
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 10px;
+      transition: all 0.3s ease;
+    }
+    
+    .file-item:hover {
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      transform: translateY(-1px);
+    }
+    
+    .file-size {
+      font-size: 0.875rem;
+      color: #6c757d;
+    }
+    
+    .file-status {
+      font-size: 0.875rem;
+    }
+    
+    .remove-btn {
+      opacity: 0.7;
+      transition: opacity 0.3s ease;
+    }
+    
+    .remove-btn:hover {
+      opacity: 1;
+    }
+    
+    .upload-progress {
+      display: none;
+    }
+    
+    .upload-summary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    
+    .btn-primary-custom {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border: none;
+      padding: 12px 30px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .btn-primary-custom:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    }
+    
+    .file-icon {
+      font-size: 1.5rem;
+      margin-right: 10px;
+    }
+    
+    .excel-icon { color: #1d6f42; }
+    .csv-icon { color: #0d6efd; }
+    
+    .stats-badge {
+      background: rgba(255, 255, 255, 0.2);
+      color: white;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      backdrop-filter: blur(10px);
+    }
+  </style>
+</head>
+<body class="bg-light">
+  <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom shadow-sm">
+    <div class="container">
+      <a class="navbar-brand fw-bold text-primary" href="/">
+        <i class="bi bi-graph-up-arrow"></i>
+        Sistema Financeiro
+      </a>
+    </div>
+  </nav>
 
-{% block content %}
-<div class="row justify-content-center">
-  <div class="col-lg-8">
-    <div class="card shadow-sm">
-      <div class="card-header bg-primary text-white">
-        <h5 class="mb-0">
-          <i class="bi bi-cloud-upload"></i>
-          Upload de Planilhas Financeiras
-        </h5>
+  <main class="container my-4">
+    <!-- Cabeçalho -->
+    <div class="row mb-4">
+      <div class="col">
+        <h1 class="h3">
+          <i class="bi bi-cloud-upload"></i> Upload de Planilhas Financeiras
+        </h1>
+        <p class="text-muted">Selecione e gerencie suas planilhas antes do processamento</p>
       </div>
-      <div class="card-body p-4">
-        <div class="alert alert-info">
-          <i class="bi bi-info-circle"></i>
-          <strong>Instruções:</strong>
-          <ul class="mb-0 mt-2">
-            <li>Selecione múltiplos arquivos Excel (.xlsx, .xls) ou CSV</li>
-            <li>O sistema buscará automaticamente pela aba "Total Mês"</li>
-            <li>Valores e datas serão extraídos automaticamente</li>
-            <li>Limite de 50MB por arquivo</li>
-          </ul>
+    </div>
+
+    <!-- Alertas do Flask -->
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+      <div class="mb-3">
+        {% for message in messages %}
+        <div class="alert alert-warning alert-dismissible fade show" role="alert">
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
-        
-        <form action="{{ url_for('upload') }}" method="post" enctype="multipart/form-data" id="uploadForm">
-          <div class="mb-3">
-            <label for="files" class="form-label">Selecione as planilhas:</label>
-            <input class="form-control" type="file" name="files[]" id="files" 
-                   accept=".xlsx,.xls,.xlsm,.csv" multiple required>
-            <div class="form-text">Você pode selecionar múltiplos arquivos de uma vez.</div>
-          </div>
-          
-          <div class="d-grid">
-            <button class="btn btn-primary btn-lg" type="submit" id="uploadBtn">
-              <i class="bi bi-upload"></i>
-              Processar Planilhas
-            </button>
-          </div>
-        </form>
-        
-        <div class="mt-3" id="uploadProgress" style="display: none;">
-          <div class="progress">
-            <div class="progress-bar progress-bar-striped progress-bar-animated" 
-                 role="progressbar" style="width: 100%">
-              Processando arquivos...
+        {% endfor %}
+      </div>
+      {% endif %}
+    {% endwith %}
+
+    <div class="row">
+      <!-- Área de Upload -->
+      <div class="col-lg-8">
+        <div class="card shadow-sm">
+          <div class="card-body">
+            <!-- Área de Drag & Drop -->
+            <div class="drag-drop-area" id="dragDropArea">
+              <i class="bi bi-cloud-upload display-1 text-primary mb-3"></i>
+              <h5>Arraste seus arquivos aqui</h5>
+              <p class="text-muted mb-3">ou clique para selecionar</p>
+              <button type="button" class="btn btn-outline-primary" onclick="document.getElementById('fileInput').click()">
+                <i class="bi bi-folder2-open"></i> Selecionar Arquivos
+              </button>
+              <input type="file" id="fileInput" multiple accept=".xlsx,.xls,.xlsm,.csv" style="display: none;">
+            </div>
+
+            <!-- Lista de Arquivos Selecionados -->
+            <div id="fileList" class="mt-4" style="display: none;">
+              <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="mb-0">
+                  <i class="bi bi-files"></i> Arquivos Selecionados
+                </h6>
+                <button type="button" class="btn btn-sm btn-outline-danger" onclick="clearAllFiles()">
+                  <i class="bi bi-trash"></i> Limpar Todos
+                </button>
+              </div>
+              <div id="filesContainer"></div>
+            </div>
+
+            <!-- Botões de Ação -->
+            <div id="actionButtons" class="mt-4 d-grid gap-2" style="display: none;">
+              <button type="button" class="btn btn-primary-custom btn-lg" onclick="processFiles()" id="processBtn">
+                <i class="bi bi-gear-fill"></i> Processar Planilhas
+              </button>
+              <button type="button" class="btn btn-outline-secondary" onclick="addMoreFiles()">
+                <i class="bi bi-plus-circle"></i> Adicionar Mais Arquivos
+              </button>
+            </div>
+
+            <!-- Progresso do Upload -->
+            <div id="uploadProgress" class="upload-progress mt-4">
+              <div class="text-center mb-3">
+                <div class="spinner-border text-primary" role="status">
+                  <span class="visually-hidden">Processando...</span>
+                </div>
+              </div>
+              <div class="progress mb-3">
+                <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                     role="progressbar" style="width: 0%" id="progressBar">
+                  0%
+                </div>
+              </div>
+              <p class="text-center text-muted" id="progressText">Preparando upload...</p>
             </div>
           </div>
         </div>
       </div>
+
+      <!-- Painel Lateral com Informações -->
+      <div class="col-lg-4">
+        <!-- Resumo dos Arquivos -->
+        <div id="uploadSummary" class="upload-summary" style="display: none;">
+          <h6 class="mb-3">
+            <i class="bi bi-info-circle"></i> Resumo do Upload
+          </h6>
+          <div class="row text-center">
+            <div class="col-6">
+              <div class="stats-badge badge rounded-pill p-2 w-100 mb-2">
+                <span id="fileCount">0</span> arquivo(s)
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="stats-badge badge rounded-pill p-2 w-100 mb-2">
+                <span id="totalSize">0 MB</span>
+              </div>
+            </div>
+          </div>
+          <div class="row mt-2">
+            <div class="col-6 text-center">
+              <small>📊 Excel: <span id="excelCount">0</span></small>
+            </div>
+            <div class="col-6 text-center">
+              <small>📋 CSV: <span id="csvCount">0</span></small>
+            </div>
+          </div>
+        </div>
+
+        <!-- Instruções -->
+        <div class="card">
+          <div class="card-header bg-info text-white">
+            <h6 class="mb-0">
+              <i class="bi bi-info-circle"></i> Instruções
+            </h6>
+          </div>
+          <div class="card-body">
+            <ul class="list-unstyled mb-0">
+              <li class="mb-2">
+                <i class="bi bi-check-circle text-success"></i>
+                Formatos aceitos: .xlsx, .xls, .csv
+              </li>
+              <li class="mb-2">
+                <i class="bi bi-check-circle text-success"></i>
+                Tamanho máximo: 50MB por arquivo
+              </li>
+              <li class="mb-2">
+                <i class="bi bi-check-circle text-success"></i>
+                Busca automática pela aba "Total Mês"
+              </li>
+              <li class="mb-2">
+                <i class="bi bi-check-circle text-success"></i>
+                Extração automática de valores e datas
+              </li>
+              <li class="mb-0">
+                <i class="bi bi-check-circle text-success"></i>
+                Você pode adicionar/remover arquivos
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Dicas -->
+        <div class="card mt-3">
+          <div class="card-header bg-warning text-dark">
+            <h6 class="mb-0">
+              <i class="bi bi-lightbulb"></i> Dicas
+            </h6>
+          </div>
+          <div class="card-body">
+            <small class="text-muted">
+              <strong>Nomeação recomendada:</strong><br>
+              • "Empresa Abril 2023.xlsx"<br>
+              • "Relatorio_04_2023.xlsx"<br>
+              • "Dados Fev 23.xlsx"<br><br>
+              <strong>Isso ajuda na identificação automática do período!</strong>
+            </small>
+          </div>
+        </div>
+      </div>
     </div>
-  </div>
-</div>
-{% endblock %}
 
-{% block scripts %}
-<script>
-document.getElementById('uploadForm').addEventListener('submit', function() {
-  document.getElementById('uploadBtn').disabled = true;
-  document.getElementById('uploadProgress').style.display = 'block';
-});
+    <!-- Form oculto para submissão -->
+    <form id="uploadForm" action="/upload" method="post" enctype="multipart/form-data" style="display: none;">
+      <div id="hiddenFileInputs"></div>
+    </form>
+  </main>
 
-document.getElementById('files').addEventListener('change', function() {
-  const files = this.files;
-  const fileList = document.createElement('div');
-  fileList.className = 'mt-2';
-  fileList.innerHTML = '<small class="text-muted">Arquivos selecionados:</small>';
-  
-  for (let i = 0; i < files.length; i++) {
-    const fileItem = document.createElement('div');
-    fileItem.className = 'small text-success';
-    fileItem.innerHTML = `<i class="bi bi-file-earmark-excel"></i> ${files[i].name}`;
-    fileList.appendChild(fileItem);
-  }
-  
-  // Remove lista anterior se existir
-  const existing = document.querySelector('.file-list');
-  if (existing) existing.remove();
-  
-  fileList.className += ' file-list';
-  this.parentNode.appendChild(fileList);
-});
-</script>
-{% endblock %}
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // Variáveis globais
+    let selectedFiles = [];
+    let fileCounter = 0;
+
+    // Elementos DOM
+    const dragDropArea = document.getElementById('dragDropArea');
+    const fileInput = document.getElementById('fileInput');
+    const fileList = document.getElementById('fileList');
+    const filesContainer = document.getElementById('filesContainer');
+    const actionButtons = document.getElementById('actionButtons');
+    const uploadSummary = document.getElementById('uploadSummary');
+    const uploadProgress = document.getElementById('uploadProgress');
+
+    // Event Listeners
+    dragDropArea.addEventListener('click', () => fileInput.click());
+    dragDropArea.addEventListener('dragover', handleDragOver);
+    dragDropArea.addEventListener('drop', handleDrop);
+    dragDropArea.addEventListener('dragleave', handleDragLeave);
+    fileInput.addEventListener('change', handleFileSelect);
+
+    // Funções de Drag & Drop
+    function handleDragOver(e) {
+      e.preventDefault();
+      dragDropArea.classList.add('drag-over');
+    }
+
+    function handleDragLeave(e) {
+      e.preventDefault();
+      dragDropArea.classList.remove('drag-over');
+    }
+
+    function handleDrop(e) {
+      e.preventDefault();
+      dragDropArea.classList.remove('drag-over');
+      const files = Array.from(e.dataTransfer.files);
+      addFiles(files);
+    }
+
+    function handleFileSelect(e) {
+      const files = Array.from(e.target.files);
+      addFiles(files);
+      // Limpa o input para permitir selecionar os mesmos arquivos novamente
+      e.target.value = '';
+    }
+
+    // Adiciona arquivos à lista
+    function addFiles(files) {
+      const validExtensions = ['.xlsx', '.xls', '.xlsm', '.csv'];
+      const maxSize = 50 * 1024 * 1024; // 50MB
+
+      files.forEach(file => {
+        // Verifica extensão
+        const extension = '.' + file.name.split('.').pop().toLowerCase();
+        if (!validExtensions.includes(extension)) {
+          showAlert(`Arquivo "${file.name}" tem formato não suportado.`, 'warning');
+          return;
+        }
+
+        // Verifica tamanho
+        if (file.size > maxSize) {
+          showAlert(`Arquivo "${file.name}" é muito grande (máximo 50MB).`, 'warning');
+          return;
+        }
+
+        // Verifica se já existe
+        if (selectedFiles.some(f => f.name === file.name && f.size === file.size)) {
+          showAlert(`Arquivo "${file.name}" já foi selecionado.`, 'info');
+          return;
+        }
+
+        // Adiciona arquivo
+        file.id = ++fileCounter;
+        selectedFiles.push(file);
+        renderFileItem(file);
+      });
+
+      updateUI();
+    }
+
+    // Renderiza item de arquivo
+    function renderFileItem(file) {
+      const fileSize = formatFileSize(file.size);
+      const extension = file.name.split('.').pop().toLowerCase();
+      const isExcel = ['xlsx', 'xls', 'xlsm'].includes(extension);
+      const iconClass = isExcel ? 'excel-icon' : 'csv-icon';
+      const iconName = isExcel ? 'file-earmark-excel' : 'file-earmark-text';
+
+      const fileItem = document.createElement('div');
+      fileItem.className = 'file-item';
+      fileItem.setAttribute('data-file-id', file.id);
+      
+      fileItem.innerHTML = `
+        <div class="row align-items-center">
+          <div class="col-auto">
+            <i class="bi bi-${iconName} file-icon ${iconClass}"></i>
+          </div>
+          <div class="col">
+            <div class="fw-semibold text-truncate" title="${file.name}">
+              ${file.name}
+            </div>
+            <div class="file-size">
+              ${fileSize} • ${extension.toUpperCase()}
+            </div>
+          </div>
+          <div class="col-auto">
+            <span class="badge bg-success file-status">
+              <i class="bi bi-check-circle"></i> Pronto
+            </span>
+          </div>
+          <div class="col-auto">
+            <button type="button" class="btn btn-sm btn-outline-danger remove-btn" 
+                    onclick="removeFile(${file.id})" title="Remover arquivo">
+              <i class="bi bi-trash"></i>
+            </button>
+          </div>
+        </div>
+      `;
+
+      filesContainer.appendChild(fileItem);
+    }
+
+    // Remove arquivo
+    function removeFile(fileId) {
+      selectedFiles = selectedFiles.filter(f => f.id !== fileId);
+      const fileItem = document.querySelector(`[data-file-id="${fileId}"]`);
+      if (fileItem) {
+        fileItem.remove();
+      }
+      updateUI();
+    }
+
+    // Limpa todos os arquivos
+    function clearAllFiles() {
+      if (selectedFiles.length === 0) return;
+      
+      if (confirm('Tem certeza que deseja remover todos os arquivos?')) {
+        selectedFiles = [];
+        filesContainer.innerHTML = '';
+        updateUI();
+      }
+    }
+
+    // Adiciona mais arquivos
+    function addMoreFiles() {
+      fileInput.click();
+    }
+
+    // Atualiza interface
+    function updateUI() {
+      const hasFiles = selectedFiles.length > 0;
+      
+      // Mostra/esconde seções
+      fileList.style.display = hasFiles ? 'block' : 'none';
+      actionButtons.style.display = hasFiles ? 'block' : 'none';
+      uploadSummary.style.display = hasFiles ? 'block' : 'none';
+
+      if (hasFiles) {
+        updateSummary();
+      }
+    }
+
+    // Atualiza resumo
+    function updateSummary() {
+      const totalSize = selectedFiles.reduce((sum, file) => sum + file.size, 0);
+      const excelFiles = selectedFiles.filter(f => 
+        ['xlsx', 'xls', 'xlsm'].includes(f.name.split('.').pop().toLowerCase())
+      ).length;
+      const csvFiles = selectedFiles.length - excelFiles;
+
+      document.getElementById('fileCount').textContent = selectedFiles.length;
+      document.getElementById('totalSize').textContent = formatFileSize(totalSize);
+      document.getElementById('excelCount').textContent = excelFiles;
+      document.getElementById('csvCount').textContent = csvFiles;
+    }
+
+    // Processa arquivos
+    function processFiles() {
+      if (selectedFiles.length === 0) {
+        showAlert('Selecione pelo menos um arquivo.', 'warning');
+        return;
+      }
+
+      // Mostra progresso
+      actionButtons.style.display = 'none';
+      uploadProgress.style.display = 'block';
+
+      // Simula progresso
+      let progress = 0;
+      const progressInterval = setInterval(() => {
+        progress += Math.random() * 15;
+        if (progress > 90) progress = 90;
+        
+        const progressBar = document.getElementById('progressBar');
+        const progressText = document.getElementById('progressText');
+        
+        progressBar.style.width = progress + '%';
+        progressBar.textContent = Math.round(progress) + '%';
+        
+        if (progress < 30) {
+          progressText.textContent = 'Validando arquivos...';
+        } else if (progress < 60) {
+          progressText.textContent = 'Processando planilhas...';
+        } else {
+          progressText.textContent = 'Extraindo dados...';
+        }
+      }, 200);
+
+      // Prepara e submete formulário
+      setTimeout(() => {
+        clearInterval(progressInterval);
+        submitForm();
+      }, 2000);
+    }
+
+    // Submete formulário
+    function submitForm() {
+      const form = document.getElementById('uploadForm');
+      const hiddenInputs = document.getElementById('hiddenFileInputs');
+      
+      // Limpa inputs anteriores
+      hiddenInputs.innerHTML = '';
+      
+      // Cria inputs para cada arquivo
+      selectedFiles.forEach((file, index) => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.name = 'files[]';
+        input.style.display = 'none';
+        
+        // Cria novo FileList com apenas este arquivo
+        const dt = new DataTransfer();
+        dt.items.add(file);
+        input.files = dt.files;
+        
+        hiddenInputs.appendChild(input);
+      });
+      
+      // Submete formulário
+      form.submit();
+    }
+
+    // Utilitários
+    function formatFileSize(bytes) {
+      if (bytes === 0) return '0 Bytes';
+      const k = 1024;
+      const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+
+    function showAlert(message, type = 'info') {
+      const alertDiv = document.createElement('div');
+      alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+      alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      `;
+      
+      // Insere no topo da página
+      const container = document.querySelector('main .container');
+      container.insertBefore(alertDiv, container.firstChild);
+      
+      // Remove automaticamente após 5 segundos
+      setTimeout(() => {
+        if (alertDiv.parentNode) {
+          alertDiv.remove();
+        }
+      }, 5000);
+    }
+  </script>
+</body>
+</html>
